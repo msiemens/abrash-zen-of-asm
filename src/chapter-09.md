@@ -133,7 +133,7 @@ I'd like to pause at this point to emphasize that the 16-bit register versions o
 
 Figure 9.1 illustrates the two forms of `inc`{.nasm}. While the special form is limited to 16-bit register operands, it has the advantage of being a byte shorter and a cycle faster than the *mod-reg-rm* register form, even when both instructions operate on the same register. As you'd expect, 8088 assemblers automatically use the more efficient special version whenever possible, so you don't need to select between the two forms explicitly. However, it's up to you to use 16-bit register `inc`{.nasm} (and `dec`{.nasm}) instructions whenever you possibly can, since only then can the assembler assemble the more efficient form of those instructions.
 
-![](images/fig9.1RT.png)
+![](../images/fig9.1RT.png)
 
 For example, [Listing 9-7](#listing-9-7), which uses the 1-byte-long 16-bit register form of `dec`{.nasm} to decrement the 16-bit DX register, executes in 5.03 us per loop, 15% faster than [Listing 9-10](#listing-9-10), which uses the 2-byte-long *mod-reg-rm* form of `dec`{.nasm} to decrement the 8-bit DL register and executes in 5.79 us per loop.
 
@@ -438,7 +438,7 @@ One feature of the 8088 that for some reason is often overlooked is the ability 
 
 You should be well aware that there are two sorts of rotates. One category, made up of `rol`{.nasm} and `ror`{.nasm}, consists of rotates that simply rotate the bits in the operand, as shown in Figure 9.2.
 
-![](images/fig9.2RT.png)
+![](../images/fig9.2RT.png)
 
 These instructions are useful for adjusting masks, swapping nibbles, and the like. For example:
 
@@ -451,7 +451,7 @@ swaps the high and low nibbles of AL. Note that these instructions don't rotate 
 
 The other rotate category, made up of `rcl`{.nasm} and `rcr`{.nasm}, consists of rotates that rotate the operand *through* the Carry flag, as shown in Figure 9.3. These instructions are useful for multi-word shifts and rotates.
 
-![](images/fig9.3RT.png)
+![](../images/fig9.3RT.png)
 
 For example:
 
@@ -470,7 +470,7 @@ The rotate instructions affect fewer flags than you might think, befitting their
 
 Similarly, there are two sorts of shift instructions. One category, made up of `shl`{.nasm} (also known as `sal`{.nasm}) and `shr`{.nasm}, consists of shifts that shift out to the Carry flag, shifting a 0 into the vacated bit of the operand, as shown in Figure 9.4.
 
-![](images/fig9.4RT.png)
+![](../images/fig9.4RT.png)
 
 These instructions are used for moving masks and bits about and for performing fast unsigned division and multiplication by powers of 2. For example:
 
@@ -482,7 +482,7 @@ multiplies AX, viewed as an unsigned value, by 2.
 
 The other shift category contains only `sar`{.nasm}. `sar`{.nasm} performs the same shift right as does `shr`{.nasm}, save that the most significant bit of the operand is preserved rather than zeroed after the shift, as shown in Figure 9.5.
 
-![](images/fig9.5RT.png)
+![](../images/fig9.5RT.png)
 
 This preserves the sign of the operand, and is useful for performing fast signed division by powers of 2. For example:
 
@@ -713,3 +713,810 @@ Learn well those special cases where a single mnemonic covers multiple instructi
 ### On to the String Instructions
 
 We've cut a wide swath through the 8088's instruction set in this chapter, but we have yet to touch on one important set of instructions—the string instructions. These instructions, which are perhaps the most important instructions the 8088 has to offer when it comes to high-performance programming, are coming up next. Stay tuned.
+
+## Listing 9-1
+
+```nasm
+;
+; *** Listing 9-1 ***
+;
+; An example of initializing multiple memory variables
+; to the same value by placing the value in a register,
+; then storing the register to each of the variables.
+; This avoids the overhead that's incurred when using
+; immediate operands.
+;
+jmp Skip
+;
+MemVar1 dw ?
+MemVar2 dw ?
+MemVar3 dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov ax,0ffffh ;place the initial value in
+; AX
+mov [MemVar1],ax ;store AX to each memory
+mov [MemVar2],ax ; variable to be initialized
+mov [MemVar3],ax
+endm
+call ZTimerOff
+```
+
+## Listing 9-2
+
+```nasm
+;
+; *** Listing 9-2 ***
+;
+; An example of initializing multiple memory variables
+; to the same value by making the value an immediate
+; operand to each instruction. Immediate operands
+; increase instruction size by 1 to 2 bytes, and preclude
+; use of the accumulator-specific direct-addressing
+; form of MOV.
+;
+jmp Skip
+;
+MemVar1 dw ?
+MemVar2 dw ?
+MemVar3 dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov [MemVar1],0ffffh ;store 0ffffh to each memory
+mov [MemVar2],0ffffh ; variable as an immediate
+mov [MemVar3],0ffffh ; operand
+endm
+call ZTimerOff
+```
+
+## Listing 9-3
+
+```nasm
+;
+; *** Listing 9-3 ***
+;
+; An example of using AND reg,reg to test for the
+; zero/non-zero status of a register. This is faster
+; (and usually shorter) than CMP reg,0.
+;
+sub dx,dx ;set DX to 0, so we don't jump
+call ZTimerOn
+rept 1000
+and dx,dx ;is DX 0?
+jnz $+2 ;just jumps to the next line if
+; Z is not set (never jumps)
+endm
+call ZTimerOff
+```
+
+## Listing 9-4
+
+```nasm
+;
+; *** Listing 9-4 ***
+;
+; An example of using CMP reg,0 to test for the
+; zero/non-zero status of a register.
+;
+sub dx,dx ;set DX to 0, so we don't jump
+call ZTimerOn
+rept 1000
+cmp dx,0 ;is DX 0?
+jnz $+2 ;just jumps to the next line if
+; Z is not set (never jumps)
+endm
+call ZTimerOff
+```
+
+## Listing 9-5
+
+```nasm
+;
+; *** Listing 9-5 ***
+;
+; An example of performing a switch statement with just a
+; few cases, all consecutive, by using CMP to test for each
+; of the cases.
+;
+; Macro to perform switch statement. This must be a macro
+; rather than code inside the REPT block because MASM
+; doesn't handle LOCAL declarations properly inside REPT
+; blocks, but it does handle them properly inside macros.
+;
+HANDLE_SWITCH macro
+local ValueWas1, ValueWas2, ValueWas3, ValueWas4
+cmp cx,1
+jz ValueWas1
+cmp cx,2
+jz ValueWas2
+cmp cx,3
+jz ValueWas3
+cmp cx,4
+jz ValueWas4
+; <none of the above>
+ValueWas1:
+ValueWas2:
+ValueWas3:
+ValueWas4:
+endm
+;
+call ZTimerOn
+TEST_VALUE = 1
+rept 1000
+mov cx,TEST_VALUE ;set the test value
+HANDLE_SWITCH ;perform the switch test
+TEST_VALUE = (TEST_VALUE MOD 5)+1 ;cycle the test value from
+; 1 to 4
+endm
+call ZTimerOff
+```
+
+## Listing 9-6
+
+```nasm
+;
+; *** Listing 9-6 ***
+;
+; An example of performing a switch statement with just a
+; few cases, all consecutive, by using DEC to test for each
+; of the cases.
+;
+; Macro to perform switch statement. This must be a macro
+; rather than code inside the REPT block because MASM
+; doesn't handle LOCAL declarations properly inside REPT
+; blocks, but it does handle them properly inside macros.
+;
+HANDLE_SWITCH macro
+local ValueWas1, ValueWas2, ValueWas3, ValueWas4
+dec cx
+jz ValueWas1
+dec cx
+jz ValueWas2
+dec cx
+jz ValueWas3
+dec cx
+jz ValueWas4
+; <none of the above>
+ValueWas1:
+ValueWas2:
+ValueWas3:
+ValueWas4:
+endm
+;
+call ZTimerOn
+TEST_VALUE = 1
+rept 1000
+mov cx,TEST_VALUE ;set the test value
+HANDLE_SWITCH ;perform the switch test
+TEST_VALUE = (TEST_VALUE MOD 5)+1 ;cycle the test value from
+; 0 to 3
+endm
+call ZTimerOff
+```
+
+## Listing 9-7
+
+```nasm
+;
+; *** Listing 9-7 ***
+;
+; Times the performance of a 16-bit register DEC.
+;
+mov dx,1000
+call ZTimerOn
+TestLoop:
+dec dx ;16-bit register DEC
+; (1 byte long, uses 16-bit-
+; register-specific form of DEC)
+jnz TestLoop
+call ZTimerOff
+```
+
+## Listing 9-8
+
+```nasm
+;
+; *** Listing 9-8 ***
+;
+; Times the performance of a 16-bit subtraction
+; of an immediate value of 1.
+;
+mov dx,1000
+call ZTimerOn
+TestLoop:
+sub dx,1 ;decrement DX by subtracting 1 from
+; it (3 bytes long, uses sign-
+; extended mod-reg-rm form of SUB)
+jnz TestLoop
+call ZTimerOff
+```
+
+## Listing 9-9
+
+```nsam
+;
+; *** Listing 9-9 ***
+;
+; Times the performance of two 16-bit register DEC
+; instructions.
+;
+mov dx,2000
+call ZTimerOn
+TestLoop:
+dec dx ;subtract 2 from DX by decrementing
+dec dx ; it twice (2 bytes long, uses
+; 2 16-bit-register-specific DECs)
+jnz TestLoop
+call ZTimerOff
+```
+
+## Listing 9-10
+
+```nasm
+;
+; *** Listing 9-10 ***
+;
+; Times the performance of an 8-bit register DEC.
+;
+mov dl,100
+call ZTimerOn
+TestLoop:
+dec dl ;8-bit register DEC
+; (2 bytes long, uses mod-reg-rm
+; form of DEC)
+jnz TestLoop
+call ZTimerOff
+```
+
+## Listing 9-11
+
+```nasm
+;
+; *** Listing 9-11 ***
+;
+; Illustrates the use of the efficient word-sized INC to
+; increment a byte-sized register, taking advantage of the
+; knowledge that AL never counts past 0FFh to wrap to 0 and
+; so AH will never affected by the INC.
+;
+; Note: This is a sample code fragment, and is not intended
+; to either be run under the Zen timer or assembled as a
+; standalone program.
+;
+sub al,al ;count up from 0
+TestLoop:
+inc ax ;AL will never turn over, so AH
+; will never be affected
+cmp al,8 ;count up to 8
+jbe TestLoop
+```
+
+## Listing 9-12
+
+```nasm
+;
+; *** Listing 9-12 ***
+;
+; Illustrates the use of a word-sized DEC for the outer
+; loop, taking advantage of the knowledge that the counter
+; for the inner loop is always 0 when the outer loop is
+; counted down. This code uses no registers other than
+; CX, and would be used when registers are in such short
+; supply that no other registers are available. Otherwise,
+; word-sized DECs would be used for both loops. (Ideally,
+; a LOOP would also be used instead of DEC CX/JNZ.)
+;
+; Note: This is a sample code fragment, and is not intended
+; to either be run under the Zen timer or assembled as a
+; standalone program.
+;
+mov cl,5 ;outer loop is performed 5 times
+OuterLoop:
+mov ch,10 ;inner loop is performed 10 times
+; each time through the outer loop
+InnerLoop:
+;<<<working code goes here>>>
+dec ch ;count down inner loop
+jnz InnerLoop
+dec cx ;CH is always 0 at this point, so
+; we can use the shorter & faster
+; word DEC to count down CL
+jnz OuterLoop
+```
+
+## Listing 9-13
+
+```nasm
+;
+; *** Listing 9-13 ***
+;
+; Adds together two 64-bit memory variables, taking
+; advantage of the fact that neither INC nor LOOP affects
+; the Carry flag.
+;
+; Note: This is a sample code fragment, and is not intended
+; to either be run under the Zen timer or assembled as a
+; standalone program.
+;
+jmp Skip
+;
+MemVar1 db 2, 0, 0, 0, 0, 0, 0, 0
+MEM_VAR_LEN equ ($-MemVar1)
+MemVar2 db 0feh, 0ffh, 0ffh, 0ffh, 0, 0, 0, 0
+;
+Skip:
+mov si,offset MemVar1 ;set up memory variable
+mov di,offset MemVar2 ; pointers
+mov ax,[si] ;add the first words
+add [di],ax ; together
+mov cx,(MEM_VAR_LEN/2)-1
+;we'll add together the
+; remaining 3 words in
+; each variable
+AdditionLoop:
+inc si
+inc si ;point to next word
+inc di ; (doesn't affect Carry
+inc di ; flag)
+mov ax,[si] ;add the next words
+adc [di],ax ; together-C flag still set
+; from last addition
+loop AdditionLoop ;add the next word of each
+; variable together
+```
+
+## Listing 9-14
+
+```nasm
+;
+; *** Listing 9-14 ***
+;
+; An illustration of the use of CBW to convert an
+; array of unsigned byte values between 0 and 7Fh to an
+; array of unsigned words. Note that this would not work
+; if Array1 contained values greater than 7Fh.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+;
+Array1 label byte
+ARRAY_VALUE=0
+rept ARRAY_LENGTH
+db ARRAY_VALUE
+ARRAY_VALUE=(ARRAY_VALUE+1) and 07fh
+;cycle source array byte
+; values from 0-7Fh
+endm
+;
+Array2 dw ARRAY_LENGTH dup (?)
+;
+Skip:
+mov si,offset Array1 ;set up array pointers
+mov di,offset Array2
+mov ax,ds
+mov es,ax ;copy to & from same segment
+cld ;make string instructions
+; increment pointers
+mov cx,ARRAY_LENGTH
+call ZTimerOn
+ProcessingLoop:
+lodsb ;get the next element
+cbw ;make it a word
+stosw ;save the word value
+loop ProcessingLoop ;do the next element
+call ZTimerOff
+```
+
+## Listing 9-15
+
+```nasm
+;
+; *** Listing 9-15 ***
+;
+; An illustration of the use of SUB AH,AH to convert an
+; array of unsigned byte values between 0 and 7Fh to an
+; array of words. Note that this would work even if Array1
+; contained values greater than 7Fh.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+;
+Array1 label byte
+ARRAY_VALUE=0
+rept ARRAY_LENGTH
+db ARRAY_VALUE
+ARRAY_VALUE=(ARRAY_VALUE+1) and 07fh
+;cycle source array byte
+; values from 0-7Fh
+endm
+;
+Array2 dw ARRAY_LENGTH dup (?)
+;
+Skip:
+mov si,offset Array1 ;set up array pointers
+mov di,offset Array2
+mov ax,ds
+mov es,ax ;copy to & from same segment
+cld ;make string instructions
+; increment pointers
+mov cx,ARRAY_LENGTH
+call ZTimerOn
+ProcessingLoop:
+lodsb ;get the next element
+sub ah,ah ;make it a word
+stosw ;save the word value
+loop ProcessingLoop ;do the next element
+call ZTimerOff
+```
+
+## Listing 9-16
+
+```nasm
+;
+;
+; *** Listing 9-16 ***
+;
+; An illustration of the use of SUB AH,AH outside the
+; processing loop to convert an array of byte values
+; between 0 and 7Fh to an array of words. AH never changes
+; from one pass through the loop to the next, so there's no
+; need to continually set AH to 0.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+;
+Array1 label byte
+ARRAY_VALUE=0
+rept ARRAY_LENGTH
+db ARRAY_VALUE
+ARRAY_VALUE=(ARRAY_VALUE+1) and 07fh
+;cycle source array byte
+; values from 0-7Fh
+endm
+;
+Array2 dw ARRAY_LENGTH dup (?)
+;
+Skip:
+mov si,offset Array1 ;set up array pointers
+mov di,offset Array2
+mov ax,ds
+mov es,ax ;copy to & from same segment
+cld ;make string instructions
+; increment pointers
+mov cx,ARRAY_LENGTH
+sub ah,ah ;set up to make each byte
+; read into AL a word in AX
+; automatically
+call ZTimerOn
+ProcessingLoop:
+lodsb ;get the next element
+stosw ;save the word value
+loop ProcessingLoop ;do the next element
+call ZTimerOff
+```
+
+## Listing 9-17
+
+```nasm
+;
+; *** Listing 9-17 ***
+;
+; Supports the use of CX to store a loop count and CL
+; to store a shift count by pushing and popping the loop
+; count around the use of the shift count.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+Array1 db ARRAY_LENGTH dup (3)
+Array2 db ARRAY_LENGTH dup (2)
+;
+Skip:
+mov si,offset Array1 ;point to the source array
+mov di,offset Array2 ;point to the dest array
+mov ax,ds
+mov es,ax ;copy to & from same segment
+mov cx,ARRAY_LENGTH ;the loop count
+mov dl,2 ;the shift count
+call ZTimerOn
+ProcessingLoop:
+lodsb ;get the next byte
+push cx ;save the loop count
+mov cl,dl ;get the shift count into CL
+shl al,cl ;shift the byte
+pop cx ;get back the loop count
+stosb ;save the modified byte
+loop ProcessingLoop
+call ZTimerOff
+```
+
+## Listing 9-18
+
+```nasm
+;
+; *** Listing 9-18 ***
+;
+; Supports the use of CX to store a loop count and CL
+; to store a shift count by using XCHG to swap the
+; contents of CL as needed.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+Array1 db ARRAY_LENGTH dup (3)
+Array2 db ARRAY_LENGTH dup (2)
+;
+Skip:
+mov si,offset Array1 ;point to the source array
+mov di,offset Array2 ;point to the dest array
+mov ax,ds
+mov es,ax ;copy to & from same segment
+mov cx,ARRAY_LENGTH ;the loop count
+mov dl,2 ;the shift count
+call ZTimerOn
+ProcessingLoop:
+lodsb ;get the next byte
+xchg cl,dl ;get the shift count into CL
+; and save the low byte of
+; the loop count in DL
+shl al,cl ;shift the byte
+xchg cl,dl ;put the shift count back
+; into DL and restore the
+; low byte of the loop count
+; to CL
+stosb ;save the modified byte
+loop ProcessingLoop
+call ZTimerOff
+```
+
+## Listing 9-19
+
+```nasm
+;
+; *** Listing 9-19 ***
+;
+; Times the performance of SUB with a register as the
+; destination operand and memory as the source operand.
+;
+jmp Skip
+;
+Dest db 0
+;
+Skip:
+call ZTimerOn
+rept 1000
+sub al,[Dest] ;subtract [Dest] from AL
+; Only 1 memory access
+; is performed
+endm
+call ZTimerOff
+```
+
+## Listing 9-20
+
+```nasm
+;
+; *** Listing 9-20 ***
+;
+; Times the performance of SUB with memory as the
+; destination operand and a register as the source operand.
+;
+jmp Skip
+;
+Dest db 0
+;
+Skip:
+call ZTimerOn
+rept 1000
+sub [Dest],al ;subtract AL from [Dest]
+; Two memory accesses are
+; performed
+endm
+call ZTimerOff
+```
+
+## Listing 9-21
+
+```nasm
+;
+; *** Listing 9-21 ***
+;
+; Times shifts performed by shifting CL times.
+;
+BITS_TO_SHIFT equ 1
+call ZTimerOn
+rept 100
+mov cl,BITS_TO_SHIFT
+shl ax,cl
+endm
+call ZTimerOff
+```
+
+## Listing 9-22
+
+```nasm
+;
+; *** Listing 9-22 ***
+;
+; Times shifts performed by using multiple 1-bit shift
+; instructions.
+;
+BITS_TO_SHIFT equ 1
+call ZTimerOn
+rept 100
+rept BITS_TO_SHIFT
+shl ax,1
+endm
+endm
+call ZTimerOff
+```
+
+## Listing 9-23
+
+```nasm
+;
+; *** Listing 9-23 ***
+;
+; Performs bit-doubling of a byte in AL to a word in AX
+; by using SAR. This is not as fast as bit-doubling with
+; a look-up table, but it is faster than any other
+; shift-based approach.
+; (Conceived by Dan Illowsky.)
+;
+DOUBLE_BYTE macro
+mov bl,al
+rept 8
+shr bl,1 ;get the next bit to double
+rcr ax,1 ;move it into the msb...
+sar ax,1 ;...and replicate it
+endm
+endm
+;
+call ZTimerOn
+BYTE_TO_DOUBLE=0
+rept 100
+mov al,BYTE_TO_DOUBLE
+DOUBLE_BYTE
+BYTE_TO_DOUBLE=(BYTE_TO_DOUBLE+1) and 0ffH
+endm
+call ZTimerOff
+```
+
+## Listing 9-24
+
+```nasm
+;
+; *** Listing 9-24 ***
+;
+; Performs binary-to-ASCII conversion of a byte value
+; by using AAM.
+;
+jmp Skip
+;
+ResultString db 3 dup (?)
+ResultStringEnd label byte
+db 0 ;a zero to mark the string end
+;
+Skip:
+BYTE_VALUE=0
+call ZTimerOn
+rept 100
+std ;make STOSB decrement DI
+mov ax,ds
+mov es,ax ;for STOSB
+mov bl,'0' ;used for converting to ASCII
+mov di,offset ResultStringEnd-1
+mov al,BYTE_VALUE
+aam ;put least significant decimal
+; digit of BYTE_VALUE in AL,
+; other digits in AH
+add al,bl ;make it an ASCII digit
+stosb ;save least significant digit
+mov al,ah
+aam ;put middle decimal digit in AL
+add al,bl ;make it an ASCII digit
+stosb ;save middle digit
+;most significant decimal
+; digit is in AH
+add ah,bl ;make it an ASCII digit
+mov [di],ah ;save most significant digit
+BYTE_VALUE=BYTE_VALUE+1
+endm
+call ZTimerOff
+```
+
+## Listing 9-25
+
+```nasm
+;
+; *** Listing 9-25 ***
+;
+; Performs binary-to-ASCII conversion of a byte value
+; by using DIV.
+;
+jmp Skip
+;
+ResultString db 3 dup (?)
+ResultStringEnd label byte
+db 0 ;a zero to mark the string end
+;
+Skip:
+BYTE_VALUE=0
+call ZTimerOn
+rept 100
+mov cx,(10 shl 8)+'0'
+;CL='0', used for converting to ASCII
+; CH=10, used for dividing by 10
+mov di,offset ResultString
+mov al,BYTE_VALUE
+sub ah,ah ;prepare 16-bit dividend
+div ch ;put least significant decimal
+; digit of BYTE_VALUE in AH,
+; other digits in AL
+add ah,cl ;make it an ASCII digit
+mov [di+2],ah ;save least significant digit
+sub ah,ah ;prepare 16-bit dividend
+div ch ;put middle decimal digit in AL
+add ah,cl ;make it an ASCII digit
+mov [di+1],ah ;save middle ASCII decimal digit
+;most significant decimal
+; digit is in AL
+add al,cl ;make it an ASCII digit
+mov [di],al ;save most significant digit
+BYTE_VALUE=BYTE_VALUE+1
+endm
+call ZTimerOff
+```
+
+## Listing 9-26
+
+```nasm
+;
+; *** Listing 9-26 ***
+;
+; Performs addition of the ASCII decimal value "00001"
+; to an ASCII decimal count variable.
+;
+DECIMAL_INCREMENT macro
+local DigitLoop
+std ;we'll work from least-significant
+; to most-significant
+mov si,offset ASCIIOne+VALUE_LENGTH-1
+mov di,offset Count+VALUE_LENGTH-1
+mov ax,ds
+mov es,ax ;ES:DI points to Count for STOSB
+mov cx,VALUE_LENGTH
+clc ;there's no carry into the least-
+; significant digit
+DigitLoop:
+lodsb ;get the next increment digit
+adc al,[di] ;add it to the next Count digit
+aaa ;adjust to an unpacked BCD digit
+lahf ;save the carry, in case we just
+; turned over 9
+add al,'0' ;make it an ASCII digit
+stosb
+sahf ;get back the carry for the next adc
+loop DigitLoop
+endm
+;
+jmp Skip
+;
+Count db '00000'
+VALUE_LENGTH equ $-Count
+ASCIIOne db '00001'
+;
+Skip:
+call ZTimerOn
+rept 100
+DECIMAL_INCREMENT
+endm
+call ZTimerOff
+```

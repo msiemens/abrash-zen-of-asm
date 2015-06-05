@@ -221,7 +221,7 @@ It may not *look* like working 32-bit negation code, but working code it is, bel
 
 In order to understand the brilliance of Dan's code, we first need to get a firm grasp on the mechanics of 32-bit negation. The basic principle of two's complement negation is that the value to be negated is first notted (that is, all its bits are flipped, from 1 to 0 or 0 to 1), and then incremented. For a 32-bit value stored in DX:AX, negation would ideally follow one of the two sequences shown in Figure 13.1, with all operations performed 32 bits at a time.
 
-![](images/fig13.1RT.png)
+![](../images/fig13.1RT.png)
 
 Unfortunately, the 8088 can only handle data 16 bits at a time, so we must perform negation with a series of 16-bit operations like:
 
@@ -233,7 +233,7 @@ sbb   dx,-1
 
 as shown in Figure 13.2.
 
-![](images/fig13.2RT.png)
+![](../images/fig13.2RT.png)
 
 The purpose of the first operation, notting DX with the `not`{.nasm} instruction, is obvious enough: flipping all the bits in the high word of the value. The purpose of the second operation, negating AX, is equally obvious: negating the low word of the value with the `neg`{.nasm} instruction, which both nots AX and increments it all at once.
 
@@ -241,17 +241,17 @@ After two instructions, we've successfully notted the entire 32-bit value in DX:
 
 When does DX need to be incremented? In one case only—when AX is originally 0, is notted to 0FFFFh, and is incremented back to 0, with a carry out from bit 15 of AX indicating that AX has turned over to 0 and so the notted value in DX must be incremented as well, as shown in Figure 13.3.
 
-![](images/fig13.3RT.png)
+![](../images/fig13.3RT.png)
 
 In all other cases, incrementing the 32-bit notted value in DX:AX doesn't alter DX at all, since incrementing AX doesn't cause a carry out of bit 15 unless AX is 0FFFFh.
 
 However, due to the way that `neg`{.nasm} sets the Carry flag (as if subtraction from zero had occurred), the Carry flag is set by `neg`{.nasm} in all cases *except* the one case in which DX needs to be incremented. Consequently, after `neg ax`{.nasm} we subtract -1 from DX with borrow, with the 1 value of the Carry flag normally offsetting the -1, resulting in a subtraction of 0 from DX. In other words, DX remains unchanged when `neg ax`{.nasm} sets the Carry flag to 1, which is to say in all cases except when AX is originally zero. That's just what we want; in all those cases the 32-bit negation was actually complete after the first two instructions, since the increment of the notted 32-bit value doesn't affect DX, as shown in Figure 13.4.
 
-![](images/fig13.4RT.png)
+![](../images/fig13.4RT.png)
 
 In the case where AX is originally 0, on the other hand, `neg ax`{.nasm} doesn't set the Carry flag. This is the one case in which DX must be incremented. In this one case only, `sbb dx,-1`{.nasm} succeeds in subtracting -1 from DX, since the Carry flag is 0. Again, that's what we want; in this one case DX is affected when the 32-bit value is incremented, and so incrementing DX completes the 32-bit negation, as shown in Figure 13.5.
 
-![](images/fig13.5RT.png)
+![](../images/fig13.5RT.png)
 
 ### How Fast 32-Bit Negation Works
 
@@ -313,11 +313,11 @@ I'll admit that it's more than a little peculiar to go out of our way to set AL 
 
 Consider this. If DL is less than or equal to 10, then the first example (the "normal" test-and-branch code) performs a `cmp dl,10`{.nasm} (4 cycles/2 bytes), a `ja DLGreaterThan10`{.nasm} that falls through (4 cycles/2 bytes), a `sub al,al`{.nasm} (3 cycles/2 bytes), and a `jmp short DLCheckDone`{.nasm} (15 cycles/2 bytes). The grand total: 26 cycles, 8 instruction bytes and one branch, as shown in Figure 13.6a.
 
-![](images/fig13.6RT.png)
+![](../images/fig13.6RT.png)
 
 On the other hand, the preload code of the second example handles the same case with a `sub al,al`{.nasm} (3 cycles/2 bytes), a `cmp dl,10`{.nasm} (4 cycles/2 bytes), and a `jbe DLCheckDone`{.nasm} that branches (16 cycles/2 bytes). The total: 23 cycles, 6 instruction bytes and one branch, as shown in Figure 13.7a.
 
-![](images/fig13.7RT.png)
+![](../images/fig13.7RT.png)
 
 That's not much faster than the normal approach, but it is faster.
 
@@ -355,7 +355,7 @@ Speedy and compact as it is, [Listing 13-8](#listing-13-8) *does* involve a cond
 
 [Listing 13-9](#listing-13-9) does just that, shifting the sign bit of each tested value into the Carry flag and then adding it—along with zero, since `adc`{.nasm} requires two source operands—to DX, as shown in Figure 13.8. (Note that the constant zero is stored in BX for speed, since `adc dx,bx`{.nasm} is 1 byte shorter and 1 cycle faster than `adc dx,0`{.nasm}.) The result is that DX is incremented only when the sign bit of the value being tested is 1—that is, only when the value being tested is negative, which is exactly what we want.
 
-![](images/fig13.8RT.png)
+![](../images/fig13.8RT.png)
 
 [Listing 13-9](#listing-13-9) runs in 10.80 ms. That's about 14% faster than [Listing 13-8](#listing-13-8), even though the instruction that increments DX in [Listing 13-9](#listing-13-9) (`adc dx,bx`{.nasm}) is actually 1 byte longer and 1 cycle slower than its counterpart in [Listing 13-8](#listing-13-8) (`inc dx`{.nasm}). The key to the improved performance is, once again, avoiding branching. In this case that's made possible by recognizing that a Carry flag-based operation can accomplish a task that we'd usually perform with a conditional jump. You wouldn't normally think to substitute `shl`{.nasm}/`adc`{.nasm} for `and`{.nasm}/`jns`{.nasm}/`inc`{.nasm}—they certainly don't *look* the least bit similar—but in this particular context the two instruction sequences are equivalent.
 
@@ -471,7 +471,7 @@ CheckY    endp
 
 The net effect: the code is 1 byte shorter, the time required for a branch is saved about half the time—*and there is absolutely no change in the logic of the code*. It's important that you understand that `jmp short`{.nasm} was basically a `nop`{.nasm} instruction in the first example, since all it did was unconditionally branch to another branching instruction, as shown in Figure 13.9.
 
-![](images/fig13.9RT.png)
+![](../images/fig13.9RT.png)
 
 We removed the unconditional jump simply by replacing it with a copy of the code that it branched to.
 
@@ -638,7 +638,7 @@ Well, `loop`{.nasm} is used to repeat a given sequence of instructions multiple 
 
 Heck, that's *easy*. We'll eliminate branching and loop counting entirely by *literally* repeating the instructions, as shown in Figure 13.10.
 
-![](images/fig13.10RT.png)
+![](../images/fig13.10RT.png)
 
 Instead of using `loop`{.nasm} to execute the same code, say, 10 times, we'll just line up 10 repetitions of the code inside the loop, and then execute the 10 repetitions one after another. This is known as *in-line code*, because the repetitions of the code are lined up in order rather than being separated by branches. (In-line code is sometimes used to refer to subroutine code that's brought into the main code, eliminating a call, a technique we discussed in the last section. However, I'm going to use the phrase "in-line code" only to refer to code that's repeated by assembling multiple instances and running them back-to-back rather than in a loop.)
 
@@ -668,7 +668,7 @@ What we've just seen is "pure" in-line code, where a loop that's always repeated
 
 As it turns out, however, it's no great trick to modify pure in-line code to replace loops that repeat a variable number of times, so long as you know the maximum number of times you'll ever want to repeat the loop. The basic concept is shown in Figure 13.11.
 
-![](images/fig13.11RT.png)
+![](../images/fig13.11RT.png)
 
 The loop code is repeated in-line as many times as the maximum possible number of loop repetitions. Then the specified repetition count is used to jump right into the in-line code at the distance from the end of the in-line code that will produce the desired number of repetitions. This mechanism, known as *branched-to in-line code*, is almost startlingly simple, but powerful nonetheless.
 
@@ -712,7 +712,7 @@ As it turns out, that's not a problem. The flexibility of branched-to in-line co
 
 The basic principle when branching into partial in-line code is similar to that for standard branched-to in-line code. The key is still to branch to the location in the in-line code from which the desired number of repetitions will occur. The difference with branched-to partial in-line code is that the branching-to process only needs to handle any odd repetitions that can't be handled by a full loop, as shown in Figure 13.12.
 
-![](images/fig13.12RT.png)
+![](../images/fig13.12RT.png)
 
 In other words, if partial in-line code performs *n* repetitions per loop and we want to perform *m* repetitions, the branching-to process only needs to handle *m* modulo *n* repetitions.
 
@@ -858,3 +858,1951 @@ My point is that you shouldn't think of code as immovable and unchangeable. I've
 Who would have thought that not-branching could offer such variety, to say nothing of such substantial performance improvements? You'll find that not-branching is an excellent exercise for developing your assembler skills, requiring as it does a complete understanding of what your code needs to do, thorough knowledge of the 8088 instruction set, the ability to approach programming problems in non-intuitive ways, knowledge as to when the effort involved in not-branching is justified by the return, and a balancing of relative importance of saving bytes and cycles in a given application.
 
 In other words, not-branching is a perfect Zen exercise. Practice it often and well!
+
+## Listing 13-1
+
+```nasm
+;
+; *** Listing 13-1 ***
+;
+; Generates the cumulative exclusive-or of all bytes in a
+; 64-byte block of memory by using the LOOP instruction to
+; repeat the same code 64 times.
+;
+jmp Skip
+;
+; The 64-byte block for which to generate the cumulative
+; exclusive-or.
+;
+X=1
+ByteArray label byte
+rept 64
+db X
+X=X+1
+endm
+;
+; Generates the cumulative exclusive-or of all bytes in a
+; 64-byte memory block.
+;
+; Input:
+; SI = pointer to start of 64-byte block for which to
+; calculate cumulative exclusive-or
+;
+; Output:
+; AH = cumulative exclusive-or of all bytes in the
+; 64-byte block
+;
+; Registers altered: AX, CX, SI
+;
+CumulativeXor:
+cld
+sub ah,ah ;initialize our cumulative XOR to 0
+mov cx,64 ;number of bytes to XOR together
+XorLoop:
+lodsb ;get the next byte and
+xor ah,al ; XOR it into the cumulative result
+loop XorLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov si,offset ByteArray
+;point to the 64-byte block
+call CumulativeXor ;get the cumulative XOR
+call ZTimerOff
+```
+
+## Listing 13-2
+
+```nasm
+;
+; *** Listing 13-2 ***
+;
+; Generates the cumulative exclusive-or of all bytes in a
+; 64-byte block of memory by replicating the exclusive-or
+; code 64 times and then executing all 64 instances in a
+; row without branching.
+;
+jmp Skip
+;
+; The 64-byte block for which to generate the cumulative
+; exclusive-or.
+;
+X=1
+ByteArray label byte
+rept 64
+db X
+X=X+1
+endm
+;
+; Generates the cumulative exclusive-or of all bytes in a
+; 64-byte memory block.
+;
+; Input:
+; SI = pointer to start of 64-byte block for which to
+; calculate cumulative exclusive-or
+;
+; Output:
+; AH = cumulative exclusive-or of all bytes in the
+; 64-byte block
+;
+; Registers altered: AX, SI
+;
+CumulativeXor:
+sub ah,ah ;initialize our cumulative XOR to 0
+rept 64
+lodsb ;get the next byte and
+xor ah,al ; XOR it into the cumulative result
+endm
+ret
+;
+Skip:
+call ZTimerOn
+cld
+mov si,offset ByteArray
+;point to the 64-byte block
+call CumulativeXor ;get the cumulative XOR
+call ZTimerOff
+```
+
+## Listing 13-3
+
+```nasm
+;
+; *** Listing 13-3 ***
+;
+; Tests whether several characters are in the set
+; {A,Z,3,!} by using the compare-and-jump approach,
+; branching each time a match isn't found.
+;
+jmp Skip
+;
+; Determines whether a given character is in the set
+; {A,Z,3,!}.
+;
+; Input:
+; AL = character to check for inclusion in the set
+;
+; Output:
+; Z if character is in TestSet, NZ otherwise
+;
+; Registers altered: none
+;
+CheckTestSetInclusion:
+cmp al,'A' ;is it 'A'?
+jnz CheckTestSetZ
+ret ;yes, we're done
+CheckTestSetZ:
+cmp al,'Z' ;is it 'Z'?
+jnz CheckTestSet3
+ret ;yes, we're done
+CheckTestSet3:
+cmp al,'3' ;is it '3'?
+jnz CheckTestSetEx
+ret ;yes, we're done
+CheckTestSetEx:
+cmp al,'!' ;is it '!'?
+ret ;the success status is already in
+; the Zero flag
+;
+Skip:
+call ZTimerOn
+mov al,'A'
+call CheckTestSetInclusion ;check 'A'
+mov al,'Z'
+call CheckTestSetInclusion ;check 'Z'
+mov al,'3'
+call CheckTestSetInclusion ;check '3'
+mov al,'!'
+call CheckTestSetInclusion ;check '!'
+mov al,' '
+call CheckTestSetInclusion ;check space, so
+; we've got a failed
+; search
+call ZTimerOff
+```
+
+## Listing 13-4
+
+```nasm
+;
+; *** Listing 13-4 ***
+;
+; Negates several 32-bit values with non-branching code.
+;
+jmp Skip
+;
+; Negates a 32-bit value.
+;
+; Input:
+; DX:AX = 32-bit value to negate
+;
+; Output:
+; DX:AX = negated 32-bit value
+;
+; Registers altered: AX, DX
+;
+Negate32Bits:
+neg dx
+neg ax
+sbb dx,0
+ret
+;
+Skip:
+call ZTimerOn
+; First, negate zero.
+sub dx,dx
+mov ax,dx ;0
+call Negate32Bits
+; Next, negate 1 through 50.
+X=1
+rept 50
+sub dx,dx
+mov ax,X
+call Negate32Bits
+X=X+1
+endm
+; Finally, negate -1 through -50.
+X=-1
+rept 50
+mov dx,0ffffh
+mov ax,X
+call Negate32Bits
+X=X-1
+endm
+call ZTimerOff
+```
+
+## Listing 13-5
+
+```nasm
+;
+; *** Listing 13-5 ***
+;
+; Negates several 32-bit values using the branch-on-zero-AX
+; approach.
+;
+jmp Skip
+;
+; Negates a 32-bit value.
+;
+; Input:
+; DX:AX = 32-bit value to negate
+;
+; Output:
+; DX:AX = negated 32-bit value
+;
+; Registers altered: AX, DX
+;
+;
+-------------------------------------------------------------------------------------------------
+; Branching-out exit for Negate32Bits when AX negates to
+; zero, necessitating an increment of DX.
+;
+Negate32BitsIncDX:
+inc dx
+ret
+;
+Negate32Bits:
+not dx
+neg ax
+jnc Negate32BitsIncDX
+ret
+;
+Skip:
+call ZTimerOn
+; First, negate zero.
+sub dx,dx
+mov ax,dx ;0
+call Negate32Bits
+; Next, negate 1 through 50.
+X=1
+rept 50
+sub dx,dx
+mov ax,X
+call Negate32Bits
+X=X+1
+endm
+; Finally, negate -1 through -50.
+X=-1
+rept 50
+mov dx,0ffffh
+mov ax,X
+call Negate32Bits
+X=X-1
+endm
+call ZTimerOff
+```
+
+## Listing 13-6
+
+```nasm
+;
+; *** Listing 13-6 ***
+;
+; Measures the time needed to set AL, based on the contents
+; of DL, with test-and-branch code (a branch is required no
+; matter what value DL contains).
+;
+;
+; Macro to perform the test of DL and setting of AL.
+; It's necessary to use a macro because the LOCAL directive
+; doesn't work properly inside REPT blocks with MASM.
+;
+TEST_DL_AND_SET_AL macro
+local DLGreaterThan10, DLCheckDone
+cmp dl,10 ;is DL greater than 10?
+ja DLGreaterThan10 ;yes, so set AL to 1
+sub al,al ;DLis <= 10
+jmp short DLCheckDone
+DLGreaterThan10:
+mov al,1 ;DLis greater than 10
+DLCheckDone:
+endm
+;
+mov dl,10 ;AL will always be set to 0
+call ZTimerOn
+rept 1000
+TEST_DL_AND_SET_AL
+endm
+call ZTimerOff
+```
+
+## Listing 13-7
+
+```nasm
+;
+; *** Listing 13-7 ***
+;
+; Measures the time needed to set AL, based on the contents
+; of DL, with preload code (a branch is required in only one
+; of the two possible cases).
+;
+;
+------------------------------------------------------------------------------------------------------
+; Macro to perform the test of DL and setting of AL.
+; It's necessary to use a macro because the LOCAL directive
+; doesn't work properly inside REPT blocks with MASM.
+;
+TEST_DL_AND_SET_AL macro
+local DLCheckDone
+sub al,al ;assume DL <= 10
+cmp dl,10 ;is DL greater than 10?
+jbe DLCheckDone ;no, so ALis already set
+mov al,1 ;DLis greater than 10
+DLCheckDone:
+endm
+;
+mov dl,10 ;AL will always be set to 0
+call ZTimerOn
+rept 1000
+TEST_DL_AND_SET_AL
+endm
+call ZTimerOff
+```
+
+## Listing 13-8
+
+```nasm
+;
+; *** Listing 13-8 ***
+;
+; Counts the number of negative values in a 1000-word array,
+; by comparing each element to 0 and branching accordingly.
+;
+jmp Skip
+;
+WordArray label word
+X=-500
+rept 1000
+dw X
+X=X+1
+endm
+WORD_ARRAY_LENGTH equ ($-WordArray)
+;
+; Counts the number of negative values in a word-sized
+; array.
+;
+; Input:
+; CX = length of array in words
+; DS:SI = pointer to start of array
+;
+; Output:
+; DX = count of negative values in array
+;
+; Registers altered: AX, CX, DX, SI
+;
+; Direction flag cleared
+;
+; Note: Does not handle arrays that are longer than 32K
+; words or cross segment boundaries.
+;
+CountNegativeWords:
+cld
+sub dx,dx ;initialize the count to 0
+CountNegativeWordsLoop:
+lodsw ;get the next word from the array
+and ax,ax ;is the word negative?
+jns CountNegativeWordsLoopBottom
+;not negative-do the next element
+inc dx ;word is negative, so increment the
+; negative-word counter
+CountNegativeWordsLoopBottom:
+loop CountNegativeWordsLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov si,offset WordArray
+;point to the array to count
+; the # of negative words in...
+mov cx,WORD_ARRAY_LENGTH/2
+;...set the # of words to check...
+call CountNegativeWords
+;...and count the negative words
+call ZTimerOff
+```
+
+## Listing 13-9
+
+```nasm
+;
+; *** Listing 13-9 ***
+;
+; Counts the number of negative values in a 1000-word array,
+; by adding the Sign bit of each array element directly to
+; the register used for counting.
+;
+jmp Skip
+;
+WordArray label word
+X=-500
+rept 1000
+dw X
+X=X+1
+endm
+WORD_ARRAY_LENGTH equ ($-WordArray)
+;
+; Counts the number of negative values in a word-sized
+; array.
+;
+; Input:
+; CX = length of array in words
+; DS:SI = pointer to start of array
+;
+; Output:
+; DX = count of negative values in array
+;
+; Registers altered: AX, BX, CX, DX, SI
+;
+; Direction flag cleared
+;
+; Note: Does not handle arrays that are longer than 32K
+; words or cross segment boundaries.
+;
+CountNegativeWords:
+cld
+sub dx,dx ;initialize the count to 0
+mov bx,dx ;store the constant 0 in BX to speed
+; up ADC in the loop
+CountNegativeWordsLoop:
+lodsw ;get the next word from the array
+shl ax,1 ;put the sign bit in the Carry flag
+adc dx,bx ;add the sign bit (via the Carry
+; flag) to DX, since BX is 0
+CountNegativeWordsLoopBottom:
+loop CountNegativeWordsLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov si,offset WordArray
+;point to the array to count
+; the # of negative words in...
+mov cx,WORD_ARRAY_LENGTH/2
+;...set the # of words to check...
+call CountNegativeWords
+;...and count the negative words
+call ZTimerOff
+```
+
+## Listing 13-10
+
+```nasm
+;
+; *** Listing 13-10 ***
+;
+; Finds the first occurrence of the letter 'z' in
+; a zero-terminated string, with a less-than-ideal
+; conditional jump followed by an unconditional jump at
+; the end of the loop.
+;
+jmp Skip
+;
+TestString label byte
+db 'This is a test string that is '
+db 'z'
+db 'terminated with a zero byte...',0
+;
+; Finds the first occurrence of the specified byte in the
+; specified zero-terminated string.
+;
+; Input:
+; AL = byte to find
+; DS:SI = zero-terminated string to search
+;
+; Output:
+; SI = pointer to first occurrence of byte in string,
+; or 0 if the byte wasn't found
+;
+; Registers altered: AX, SI
+;
+; Direction flag cleared
+;
+; Note: Do not pass a string that starts at offset 0 (SI=0),
+; since a match on the first byte and failure to find
+; the byte would be indistinguishable.
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+FindCharInString:
+mov ah,al ;we'll need AL since that's the
+; only register LODSB can use
+cld
+FindCharInStringLoop:
+lodsb ;get the next string byte
+cmp al,ah ;is this the byte we're
+; looking for?
+jz FindCharInStringFound
+;yes, so we're done with a match
+and al,al ;is this the terminating zero?
+jz FindCharInStringNotFound
+;yes, so we're done with no match
+jmp FindCharInStringLoop
+;check the next byte
+FindCharInStringFound:
+dec si ;point back to the matching byte
+ret
+FindCharInStringNotFound:
+sub si,si ;we didn't find a match, so return
+; 0 in SI
+ret
+;
+Skip:
+call ZTimerOn
+mov al,'z' ;byte value to find
+mov si,offset TestString
+;string to search
+call FindCharInString ;search for the byte
+call ZTimerOff
+```
+
+## Listing 13-11
+
+```nasm
+;
+; *** Listing 13-11 ***
+;
+; Determines whether there are more non-negative or negative
+; elements in an array of 8-bit signed values, using a
+; standard test-and-branch approach and a single LOOP
+; instruction.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 256
+ByteArray label byte
+X=0
+rept ARRAY_LENGTH
+db X
+X=X+1
+endm
+;
+; Determines whether there are more non-negative or
+; negative elements in the specified array of 8-bit
+; signed values.
+;
+; Input:
+; CX = length of array
+; DS:SI = array to check
+;
+; Output:
+; DX = signed count of the number of non-negative
+; elements found in the array minus the number
+; of negative elements found. (Zero if there
+; are the same number of each type of element.
+; Otherwise, sign bit set if there are more
+; negative elements than non-negative
+; elements, cleared if there are more
+; non-negative elements than negative
+; elements)
+;
+; Registers altered: AL, CX, DX, SI
+;
+; Direction flag cleared
+;
+; Note: Only usefuLif the surplus of non-negative
+; elements over negative elements is less than
+; 32K, or if the surplus of negative elements
+; over non-negative elements is less than or
+; equal to 32K. Otherwise, the signed count
+; returned in DX overflows.
+;
+; Note: Does not handle arrays that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CountNegPos:
+cld
+sub dx,dx ;initialize the count to zero
+CountNegPosLoop:
+lodsb ;get the next byte to check
+and al,al ;see if it's negative or
+; non-negative
+js CountNeg ;it's negative
+inc dx ;count off one non-negative element
+jmp short CountNegPosLoopBottom
+CountNeg:
+dec dx ;count off one negative element
+CountNegPosLoopBottom:
+loop CountNegPosLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov si,offset ByteArray ;array to check
+mov cx,ARRAY_LENGTH ;# of bytes to check
+call CountNegPos ;see whether there
+; are more negative
+; or non-negative
+; elements
+call ZTimerOff
+```
+
+## Listing 13-12
+
+```nasm
+; *** Listing 13-12 ***
+;
+; Determines whether there are more non-negative or negative
+; elements in an array of 8-bit signed values, using
+; duplicated code with two LOOP instructions and two RET
+; instructions.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 256
+ByteArray label byte
+X=0
+rept ARRAY_LENGTH
+db X
+X=X+1
+endm
+;
+; Determines whether there are more non-negative or
+; negative elements in the specified array of 8-bit
+; signed values.
+;
+; Input:
+; CX = length of array
+; DS:SI = array to check
+;
+; Output:
+; DX = signed count of the number of non-negative
+; elements found in the array minus the number
+; of negative elements found. (Zero if there
+; are the same number of each type of element.
+; Otherwise, sign bit set if there are more
+; negative elements than non-negative
+; elements, cleared if there are more
+; non-negative elements than negative
+; elements)
+;
+; Registers altered: AL, CX, DX, SI
+;
+; Direction flag cleared
+;
+; Note: Only usefuLif the surplus of non-negative
+; elements over negative elements is less than
+; 32K, or if the surplus of negative elements
+; over non-negative elements is less than or
+; equal to 32K. Otherwise, the signed count
+; returned in DX overflows.
+;
+; Note: Does not handle arrays that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CountNegPos:
+cld
+sub dx,dx ;initialize the count to zero
+CountNegPosLoop:
+lodsb ;get the next byte to check
+and al,al ;see if it's negative or
+; non-negative
+js CountNeg ;it's negative
+inc dx ;count off one non-negative element
+loop CountNegPosLoop
+ret
+CountNeg:
+dec dx ;count off one negative element
+loop CountNegPosLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov si,offset ByteArray ;array to check
+mov cx,ARRAY_LENGTH ;# of bytes to check
+call CountNegPos ;see whether there
+; are more negative
+; or non-negative
+; elements
+call ZTimerOff
+```
+
+## Listing 13-13
+
+```nasm
+;
+; *** Listing 13-13 ***
+;
+; Copies a zero-terminated string to another string,
+; optionally converting characters to uppercase. The
+; decision as to whether to convert to uppercase is made
+; once for each character.
+;
+jmp Skip
+;
+SourceString label byte
+db 'This is a sample string, consisting of '
+db 'both uppercase and lowercase characters.'
+db 0
+DestinationString label byte
+db 100 dup (?)
+;
+; Copies a zero-terminated string to another string,
+; optionally converting characters to uppercase.
+;
+; Input:
+; DL = 1 if conversion to uppercase during copying is
+; desired, 0 otherwise
+; DS:SI = source string
+; ES:DI = destination string
+;
+; Output: none
+;
+; Registers altered: AL, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CopyAndConvert:
+cld
+CopyAndConvertLoop:
+lodsb ;get the next byte
+; to check
+and dl,dl ;conversion to
+; uppercase desired?
+jz CopyAndConvertUC ;no
+cmp al,'a' ;less than 'a'?
+jb CopyAndConvertUC ;yes, not lowercase
+cmp al,'z' ;greater than 'z'?
+ja CopyAndConvertUC ;yes, not lowercase
+and al,not 20h ;make it uppercase
+CopyAndConvertUC:
+stosb ;put the byte in the
+; destination string
+and al,al ;was that the
+; terminating zero?
+jnz CopyAndConvertLoop ;no, do next byte
+ret
+;
+Skip:
+call ZTimerOn
+;
+; First, copy without converting to uppercase.
+;
+mov di,seg DestinationString
+mov es,di
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+sub dl,dl ;don't convert to uppercase
+call CopyAndConvert ;copy without converting
+; to uppercase
+;
+; Now copy and convert to uppercase.
+;
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+mov dl,1 ;convert to uppercase this time
+call CopyAndConvert ;copy and convert to
+; uppercase
+call ZTimerOff
+```
+
+## Listing 13-14
+
+```nasm
+;
+; *** Listing 13-14 ***
+;
+; Copies a zero-terminated string to another string,
+; optionally converting characters to uppercase. The
+; decision as to whether to convert to uppercase is made
+; once at the beginning of the subroutine; if conversion
+; is not desired, the register containing the value of the
+; start of the lowercase range is simply set to cause all
+; tests for lowercase to fail. This avoids one test in the
+; case where conversion to uppercase is desired, since the
+; single test for the start of the lowercase range is able
+; to perform both that test and the test for whether
+; conversion is desired.
+;
+jmp Skip
+;
+SourceString label byte
+db 'This is a sample string, consisting of '
+db 'both uppercase and lowercase characters.'
+db 0
+DestinationString label byte
+db 100 dup (?)
+;
+; Copies a zero-terminated string to another string,
+; optionally converting characters to uppercase.
+;
+; Input:
+; DL = 1 if conversion to uppercase during copying is
+; desired, 0 otherwise
+; DS:SI = source string
+; ES:DI = destination string
+;
+; Output: none
+;
+; Registers altered: AX, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CopyAndConvert:
+cld
+mov ah,0ffh ;assume conversion to uppercase is
+; not desired. In that case, this
+; value will cause the initial
+; lowercase test to fail (except
+; when the character is 0FFh, but
+; that's rare and will be rejected
+; by the second lowercase test
+and dl,dl ;is conversion to uppercase desired?
+jz CopyAndConvertLoop ;no, AH is all set
+mov ah,'a' ;set the proper lower limit of the
+; lowercase range
+CopyAndConvertLoop:
+lodsb ;get the next byte
+; to check
+cmp al,ah ;less than 'a'?
+; (If conversion
+; isn't desired,
+; AH is 0FFh, and
+; this fails)
+jb CopyAndConvertUC ;yes, not lowercase
+cmp al,'z' ;greater than 'z'?
+ja CopyAndConvertUC ;yes, not lowercase
+and al,not 20h ;make it uppercase
+CopyAndConvertUC:
+stosb ;put the byte in the
+; destination string
+and al,al ;was that the
+; terminating zero?
+jnz CopyAndConvertLoop ;no, do next byte
+ret
+;
+Skip:
+call ZTimerOn
+;
+; First, copy without converting to uppercase.
+;
+mov di,seg DestinationString
+mov es,di
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+sub dl,dl ;don't convert to uppercase
+call CopyAndConvert ;copy without converting
+; to uppercase
+;
+; Now copy and convert to uppercase.
+;
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+mov dl,1 ;convert to uppercase this time
+call CopyAndConvert ;copy and convert to
+; uppercase
+call ZTimerOff
+```
+
+## Listing 13-15
+
+```nasm
+;
+; *** Listing 13-15 ***
+;
+; Copies a zero-terminated string to another string,
+; optionally converting characters to uppercase. The
+; decision as to whether to convert to uppercase is made
+; once at the beginning of the subroutine, with separate
+; code executed depending on whether conversion is desired
+; or not.
+;
+jmp Skip
+;
+SourceString label byte
+db 'This is a sample string, consisting of '
+db 'both uppercase and lowercase characters.'
+db 0
+DestinationString label byte
+db 100 dup (?)
+;
+; Copies a zero-terminated string to another string,
+; optionally converting characters to uppercase.
+;
+; Input:
+; DL = 1 if conversion to uppercase during copying is
+; desired, 0 otherwise
+; DS:SI = source string
+; ES:DI = destination string
+;
+; Output: none
+;
+; Registers altered: AL, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CopyAndConvert:
+cld
+and dl,dl ;is conversion desired?
+jz CopyLoop ;no, so just copy the string
+;
+; Copy the string, converting to uppercase.
+;
+CopyAndConvertLoop:
+lodsb ;get the next byte
+; to check
+cmp al,'a' ;less than 'a'?
+jb CopyAndConvertUC ;yes, not lowercase
+cmp al,'z' ;greater than 'z'?
+ja CopyAndConvertUC ;yes, not lowercase
+and al,not 20h ;make it uppercase
+CopyAndConvertUC:
+stosb ;put the byte in the
+; destination string
+and al,al ;was that the
+; terminating zero?
+jnz CopyAndConvertLoop ;no, do next byte
+ret
+;
+; Copy the string without conversion to uppercase.
+;
+CopyLoop:
+lodsb ;get the next byte to check
+stosb ;copy the byte
+and al,al ;was that the terminating 0?
+jnz CopyLoop ;no, do next byte
+ret
+;
+Skip:
+call ZTimerOn
+;
+; First, copy without converting to uppercase.
+;
+mov di,seg DestinationString
+mov es,di
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+sub dl,dl ;don't convert to uppercase
+call CopyAndConvert ;copy without converting
+; to uppercase
+;
+; Now copy and convert to uppercase.
+;
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+mov dl,1 ;convert to uppercase this time
+call CopyAndConvert ;copy and convert to
+; uppercase
+call ZTimerOff
+```
+
+## Listing 13-16
+
+```nasm
+;
+; *** Listing 13-16 ***
+;
+; Copies a zero-terminated string to another string,
+; filtering out non-printable characters by means of a
+; subroutine that performs the test.
+;
+jmp Skip
+;
+SourceString label byte
+db 'This is a sample string, consisting of '
+X=1
+rept 31
+db X
+X=X+1
+endm
+db 7fh
+db 'both printable and non-printable '
+db 'characters', 0
+DestinationString label byte
+db 200 dup (?)
+;
+; Determines whether a character is printable (in the range
+; 20h through 7Eh).
+;
+; Input:
+; AL = character to check
+;
+; Output:
+; Zero flag set to 1 if character is printable,
+; set to 0 otherwise
+;
+; Registers altered: none
+;
+IsPrintable:
+cmp al,20h
+jb IsPrintableDone ;not printable
+cmp al,7eh
+ja IsPrintableDone ;not printable
+cmp al,al ;set the Zero flag to 1, since the
+; character is printable
+IsPrintableDone:
+ret
+;
+; Copies a zero-terminated string to another string,
+; filtering out non-printable characters.
+;
+; Input:
+; DS:SI = source string
+; ES:DI = destination string
+;
+; Output: none
+;
+; Registers altered: AL, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CopyPrintable:
+cld
+CopyPrintableLoop:
+lodsb ;get the next byte to copy
+call IsPrintable ;is it printable?
+jnz NotPrintable ;nope, don't copy it
+stosb ;put the byte in the
+; destination string
+jmp CopyPrintableLoop ;the character was
+; printable, so it couldn't
+; possibly have been 0. No
+; need to check whether it
+; terminated the string
+NotPrintable:
+and al,al ;was that the
+; terminating zero?
+jnz CopyPrintableLoop ;no, do next byte
+stosb ;copy the terminating zero
+ret ;done
+;
+Skip:
+call ZTimerOn
+mov di,seg DestinationString
+mov es,di
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+call CopyPrintable ;copy the printable
+; characters
+call ZTimerOff
+```
+
+## Listing 13-17
+
+```nasm
+;
+; *** Listing 13-17 ***
+;
+; Copies a zero-terminated string to another string,
+; filtering out non-printable characters by means of a
+; macro that performs the test.
+;
+jmp Skip
+;
+SourceString label byte
+db 'This is a sample string, consisting of '
+X=1
+rept 31
+db X
+X=X+1
+endm
+db 7fh
+db 'both printable and non-printable '
+db 'characters', 0
+DestinationString label byte
+db 200 dup (?)
+;
+; Macro that determines whether a character is printable (in
+; the range 20h through 7Eh).
+;
+; Input:
+; AL = character to check
+;
+; Output:
+; Zero flag set to 1 if character is printable,
+; set to 0 otherwise
+;
+; Registers altered: none
+;
+IS_PRINTABLE macro
+local IsPrintableDone
+cmp al,20h
+jb IsPrintableDone ;not printable
+cmp al,7eh
+ja IsPrintableDone ;not printable
+cmp al,al ;set the Zero flag to 1, since the
+; character is printable
+IsPrintableDone:
+endm
+;
+; Copies a zero-terminated string to another string,
+; filtering out non-printable characters.
+;
+; Input:
+; DS:SI = source string
+; ES:DI = destination string
+;
+; Output: none
+;
+; Registers altered: AL, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CopyPrintable:
+cld
+CopyPrintableLoop:
+lodsb ;get the next byte to copy
+IS_PRINTABLE ;is it printable?
+jnz NotPrintable ;nope, don't copy it
+stosb ;put the byte in the
+; destination string
+jmp CopyPrintableLoop ;the character was
+; printable, so it couldn't
+; possibly have been 0. No
+; need to check whether it
+; terminated the string
+NotPrintable:
+and al,al ;was that the
+; terminating zero?
+jnz CopyPrintableLoop ;no, do next byte
+stosb ;copy the terminating zero
+ret ;done
+;
+Skip:
+call ZTimerOn
+mov di,seg DestinationString
+mov es,di
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+call CopyPrintable ;copy the printable
+; characters
+call ZTimerOff
+```
+
+## Listing 13-18
+
+```nasm
+;
+; *** Listing 13-18 ***
+;
+; Copies a zero-terminated string to another string,
+; filtering out non-printable characters by means of
+; carefully customized code that performs the test
+; directly in the loop.
+;
+jmp Skip
+;
+SourceString label byte
+db 'This is a sample string, consisting of '
+X=1
+rept 31
+db X
+X=X+1
+endm
+db 7fh
+db 'both printable and non-printable '
+db 'characters', 0
+DestinationString label byte
+db 200 dup (?)
+;
+; Copies a zero-terminated string to another string,
+; filtering out non-printable characters.
+;
+; Input:
+; DS:SI = source string
+; ES:DI = destination string
+;
+; Output: none
+;
+; Registers altered: AL, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CopyPrintable:
+cld
+CopyPrintableLoop:
+lodsb ;get the next byte to copy
+cmp al,20h
+jb NotPrintable ;not printable
+cmp al,7eh
+ja CopyPrintableLoop ;not printable
+stosb ;put the byte in the
+; destination string
+jmp CopyPrintableLoop ;the character was
+; printable, so it couldn't
+; possibly have been 0. No
+; need to check whether it
+; terminated the string
+NotPrintable:
+and al,al ;was that the
+; terminating zero?
+jnz CopyPrintableLoop ;no, do next byte
+stosb ;copy the terminating zero
+ret ;done
+;
+Skip:
+call ZTimerOn
+mov di,seg DestinationString
+mov es,di
+mov di,offset DestinationString
+;ES:DI points to the destination
+mov si,offset SourceString
+;DS:SI points to the source
+call CopyPrintable ;copy the printable
+; characters
+call ZTimerOff
+```
+
+## Listing 13-19
+
+```nasm
+;
+; *** Listing 13-19 ***
+;
+; Zeros the high-bit of each byte in a 100-byte array,
+; using the LOOP instruction.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 100
+ByteArray label byte
+db ARRAY_LENGTH dup (80h)
+;
+; Clears the high bit of each byte in an array of
+; length ARRAY_LENGTH.
+;
+; Input:
+; BX = pointer to the start of the array to clear
+;
+; Output: none
+;
+; Registers altered: AL, BX, CX
+;
+ClearHighBits:
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+mov al,not 80h ;pattern to clear
+; high bits with
+ClearHighBitsLoop:
+and [bx],al ;clear the high bit
+; of this byte
+inc bx ;point to the next
+; byte
+loop ClearHighBitsLoop ;repeat until we're
+; out of bytes
+ret
+;
+Skip:
+call ZTimerOn
+mov bx,offset ByteArray
+;array in which to clear
+; high bits
+call ClearHighBits ;clear the high bits of the
+; bytes
+call ZTimerOff
+```
+
+## Listing 13-20
+
+```nasm
+;
+; *** Listing 13-20 ***
+;
+; Zeros the high-bit of each byte in a 100-byte array,
+; using in-line code.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 100
+ByteArray label byte
+db ARRAY_LENGTH dup (80h)
+;
+; Clears the high bit of each byte in an array of
+; length ARRAY_LENGTH.
+;
+; Input:
+; BX = pointer to the start of the array to clear
+;
+; Output: none
+;
+; Registers altered: AL, BX
+;
+ClearHighBits:
+mov al,not 80h ;pattern to clear
+; high bits with
+rept ARRAY_LENGTH ;# of bytes to clear
+and [bx],al ;clear the high bit
+; of this byte
+inc bx ;point to the next
+; byte
+endm
+ret
+;
+Skip:
+call ZTimerOn
+mov bx,offset ByteArray
+;array in which to clear
+; high bits
+call ClearHighBits ;clear the high bits of the
+; bytes
+call ZTimerOff
+```
+
+## Listing 13-21
+
+```nasm
+;
+; *** Listing 13-21 ***
+;
+; Replacement code for XorImage in Listing 11-33.
+; This version uses in-line code to eliminate branching
+; during the drawing of each image line.
+;-----------------------------
+; Exclusive-ors the image of a 3-color square at the
+; specified screen location. Assumes images start on
+; even-numbered scan lines and are an even number of
+; scan lines high. Always draws images byte-aligned in
+; display memory.
+;
+; Input:
+; CX = X coordinate of upper left corner at which to
+; draw image (will be adjusted to nearest
+; less-than or equal-to multiple of 4 in order
+; to byte-align)
+; DX = Y coordinate of upper left corner at which to
+; draw image
+; ES = display memory segment
+;
+; Output: none
+;
+; Registers altered: AX, CX, DX, SI, DI, BP
+;
+XorImage:
+shr dx,1 ;divide the row # by 2 to compensate
+; for the 2-bank nature of 320x200
+; 4-color mode
+mov ax,SCREEN_WIDTH
+mul dx ;start offset of top row of image in
+; display memory
+shr cx,1 ;divide the X coordinate by 4
+shr cx,1 ; because there are 4 pixels per
+; byte
+add ax,cx ;point to the offset at which the
+; upper left byte of the image will
+; go
+mov di,ax
+mov si,offset TheImage
+;point to the start of the one image
+; we always draw
+mov dx,BANK_OFFSET-IMAGE_WIDTH
+;offset from the end of an even line
+; of the image in display memory to
+; the start of the next odd line of
+; the image
+mov bp,BANK_OFFSET-SCREEN_WIDTH+IMAGE_WIDTH
+;offset from the end of an odd line
+; of the image in display memory to
+; the start of the next even line of
+; the image
+mov cx,IMAGE_HEIGHT/2
+;# of even/odd numbered row pairs to
+; draw in the image
+XorRowLoop:
+rept IMAGE_WIDTH/2
+lodsw ;next word of the image pattern
+xor es:[di],ax ;XOR the next word of the
+; image into the screen
+inc di ;point to the next word in display
+inc di ; memory
+endm
+add di,dx ;point to the start of the next
+; (odd) row of the image, which is
+; in the second bank of display
+; memory
+rept IMAGE_WIDTH/2
+lodsw ;next word of the image pattern
+xor es:[di],ax ;XOR the next word of the
+; image into the screen
+inc di ;point to the next word in display
+inc di ; memory
+endm
+sub di,bp ;point to the start of the next
+; (even) row of the image, which is
+; in the first bank of display
+; memory
+loop XorRowLoop ;count down the row pairs
+ret
+```
+
+## Listing 13-22
+
+```nasm
+;
+; *** Listing 13-22 ***
+;
+; Replacement code for BlockDrawImage in Listing 11-34.
+; This version uses in-line code to eliminate branching
+; entirely during the drawing of each image (eliminates
+; the branching between the drawing of each pair of lines.)
+;-----------------------------
+; Block-move draws the image of a 3-color square at the
+; specified screen location. Assumes images start on
+; even-numbered scan lines and are an even number of
+; scan lines high. Always draws images byte-aligned in
+; display memory.
+;
+; Input:
+; CX = X coordinate of upper left corner at which to
+; draw image (will be adjusted to nearest
+; less-than or equal-to multiple of 4 in order
+; to byte-align)
+; DX = Y coordinate of upper left corner at which to
+; draw image
+; ES = display memory segment
+;
+; Output: none
+;
+; Registers altered: AX, CX, DX, SI, DI, BP
+;
+BlockDrawImage:
+shr dx,1 ;divide the row # by 2 to compensate
+; for the 2-bank nature of 320x200
+; 4-color mode
+mov ax,SCREEN_WIDTH
+mul dx ;start offset of top row of image in
+; display memory
+shr cx,1 ;divide the X coordinate by 4
+shr cx,1 ; because there are 4 pixels per
+; byte
+add ax,cx ;point to the offset at which the
+; upper left byte of the image will
+; go
+mov di,ax
+mov si,offset TheImage
+;point to the start of the one image
+; we always draw
+mov ax,BANK_OFFSET-SCREEN_WIDTH+IMAGE_WIDTH
+;offset from the end of an odd line
+; of the image in display memory to
+; the start of the next even line of
+; the image
+mov dx,BANK_OFFSET-IMAGE_WIDTH
+;offset from the end of an even line
+; of the image in display memory to
+; the start of the next odd line of
+; the image
+mov bp,IMAGE_WIDTH/2
+;# of words to draw per row of the
+; image. Note that IMAGE_WIDTH must
+; be an even number since we XOR
+; the image a word at a time
+rept IMAGE_HEIGHT/2
+mov cx,bp ;# of words to draw per row of the
+; image
+rep movsw ;draw a whole even row with this one
+; repeated instruction
+add di,dx ;point to the start of the next
+; (odd) row of the image, which is
+; in the second bank of display
+; memory
+mov cx,bp ;# of words to draw per row of the
+; image
+rep movsw ;draw a whole odd row with this one
+; repeated instruction
+sub di,ax
+;point to the start of the next
+; (even) row of the image, which is
+; in the first bank of display
+; memory
+endm
+ret
+```
+
+## Listing 13-23
+
+```nasm
+;
+; *** Listing 13-23 ***
+;
+; Zeros the high-bit of each byte in a 100-byte array,
+; using branched-to in-line code.
+;
+jmp Skip
+;
+MAXIMUM_ARRAY_LENGTH equ 200
+ARRAY_LENGTH equ 100
+ByteArray label byte
+db ARRAY_LENGTH dup (80h)
+;
+; Clears the high bit of each byte in an array.
+;
+; Input:
+; BX = pointer to the start of the array to clear
+; CX = number of bytes to clear (no greater than
+; MAXIMUM_ARRAY_LENGTH)
+;
+; Output: none
+;
+; Registers altered: AX, BX, CX
+;
+ClearHighBits:
+;
+; Calculate the offset in the in-line code to which to jump
+; in order to get the desired number of repetitions.
+;
+mov al,InLineBitClearEnd-SingleRepetitionStart
+;# of bytes per single
+; repetition of
+; AND [BX],AL/INC BX
+mul cl ;# of code bytes in the # of
+; repetitions desired
+mov cx,offset InLineBitClearEnd
+sub cx,ax ;point back just enough
+; instruction bytes from
+; the end of the in-line
+; code to perform the
+; desired # of repetitions
+mov al,not 80h ;pattern to clear high bits
+; with
+jmp cx ;finally, branch to perform
+; the desired # of
+; repetitions
+;
+; In-line code to clear the high bits of up to the maximum #
+; of bytes.
+;
+rept MAXIMUM_ARRAY_LENGTH-1
+;maximum # of bytes to clear
+; less 1
+and [bx],al ;clear the high bit of this
+; byte
+inc bx ;point to the next byte
+endm
+SingleRepetitionStart: ;a single repetition of the
+; loop code, so we can
+; calculate the length of
+; a single repetition
+and [bx],dl ;clear the high bit of this
+; byte
+inc bx ;point to the next byte
+InLineBitClearEnd:
+ret
+;
+Skip:
+call ZTimerOn
+mov bx,offset ByteArray
+;array in which to clear
+; high bits
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+; (always less than
+; MAXIMUM_ARRAY_LENGTH)
+call ClearHighBits ;clear the high bits of the
+; bytes
+call ZTimerOff
+```
+
+## Listing 13-24
+
+```nasm
+;
+; *** Listing 13-24 ***
+;
+; Zeros the high-bit of each byte in a 100-byte array,
+; using partiaLin-line code.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 100
+ByteArray label byte
+db ARRAY_LENGTH dup (80h)
+;
+; Clears the high bit of each byte in an array.
+;
+; Input:
+; BX = pointer to the start of the array to clear
+; CX = number of bytes to clear (must be a multiple
+; of 4)
+;
+; Output: none
+;
+; Registers altered: AL, BX, CX
+;
+ClearHighBits:
+mov al,not 80h ;pattern to clear
+; high bits with
+shr cx,1 ;# of passes through
+shr cx,1 ; partiaLin-line
+; loop, which does
+; 4 bytes at a pop
+ClearHighBitsLoop:
+rept 4 ;we'll put 4 bit-
+; clears back to
+; back, then loop
+and [bx],al ;clear the high bit
+; of this byte
+inc bx ;point to the next
+; byte
+endm
+loop ClearHighBitsLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov bx,offset ByteArray
+;array in which to clear
+; high bits
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+; (always a multiple of 4)
+call ClearHighBits ;clear the high bits of the
+; bytes
+call ZTimerOff
+```
+
+## Listing 13-25
+
+```nasm
+;
+; *** Listing 13-25 ***
+;
+; Zeros the high-bit of each byte in a 100-byte array,
+; using branched-to partiaLin-line code.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 100
+ByteArray label byte
+db ARRAY_LENGTH dup (80h)
+;
+; Clears the high bit of each byte in an array.
+;
+; Input:
+; BX = pointer to the start of the array to clear
+; CX = number of bytes to clear (0 means 0)
+;
+; Output: none
+;
+; Registers altered: AX, BX, CX, DX
+;
+ClearHighBits:
+;
+; Calculate the offset in the partiaLin-line code to which
+; to jump in order to perform CX modulo 4 repetitions (the
+; remaining repetitions will be handled by full passes
+; through the loop).
+;
+mov ax,cx
+and ax,3 ;# of repetitions modulo 4
+mov dx,ax
+shl ax,1
+add ax,dx ;(# of reps modulo 4) * 3
+; is the # of bytes from the
+; the end of the partial
+; in-line code to branch to
+; in order to handle the
+; # of repetitions that
+; can't be handled in a full
+; loop
+mov dx,offset InLineBitClearEnd
+sub dx,ax ;point back just enough
+; instruction bytes from
+; the end of the in-line
+; code to perform the
+; desired # of repetitions
+shr cx,1 ;divide by 4, since we'll do
+shr cx,1 ; 4 repetitions per loop
+inc cx ;account for the first,
+; partial pass through the
+; loop
+mov al,not 80h ;pattern to clear high bits
+; with
+jmp dx ;finally, branch to perform
+; the desired # of
+; repetitions
+;
+; PartiaLin-line code to clear the high bits of 4 bytes per
+; pass through the loop.
+;
+ClearHighBitsLoop:
+rept 4
+and [bx],al ;clear the high bit of this
+; byte
+inc bx ;point to the next byte
+endm
+InLineBitClearEnd:
+loop ClearHighBitsLoop
+ret
+;
+Skip:
+call ZTimerOn
+mov bx,offset ByteArray
+;array in which to clear
+; high bits
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+; (always less than
+; MAXIMUM_ARRAY_LENGTH)
+call ClearHighBits ;clear the high bits of the
+; bytes
+call ZTimerOff
+```
+
+## Listing 13-26
+
+```nasm
+;
+; *** Listing 13-26 ***
+;
+; Replacement code for ClearHighBits in Listing 13-25.
+; This version performs 64K rather than 0 repetitions
+; when CX is 0.
+;-----------------------------
+; Clears the high bit of each byte in an array.
+;
+; Input:
+; BX = pointer to the start of the array to clear
+; CX = number of bytes to clear (0 means 64K)
+;
+; Output: none
+;
+; Registers altered: AX, BX, CX, DX
+;
+ClearHighBits:
+;
+; Calculate the offset in the partiaLin-line code to which
+; to jump in order to perform CX modulo 4 repetitions (the
+; remaining repetitions will be handled by full passes
+; through the loop).
+;
+dec cx ;# of reps -1, since 1 to 4
+; (rather than 0 to 3) repetitions
+; are performed on the first,
+; possibly partial pass through
+; the loop
+
+mov ax,cx
+and ax,3 ;# of repetitions modulo 4
+inc ax ;(# of reps modulo 4)+1 in order to
+; perform 1 to 4 repetitions on the
+; first, possibly partial pass
+; through the loop
+mov dx,ax
+shl ax,1
+add ax,dx ;(((# of reps -1) modulo 4)+1)*3
+; is the # of bytes from the
+; the end of the partial
+; in-line code to branch to
+; in order to handle the
+; # of repetitions that
+; must be handled in the
+; first, possibly partial
+; loop
+mov dx,offset InLineBitClearEnd
+sub dx,ax ;point back just enough
+; instruction bytes from
+; the end of the in-line
+; code to perform the
+; desired # of repetitions
+shr cx,1 ;divide by 4, since we'll do
+shr cx,1 ; 4 repetitions per loop
+inc cx ;account for the first,
+; possibly partial pass
+; through the loop
+mov al,not 80h
+;pattern with which to clear
+; high bits
+jmp dx ;finally, branch to perform
+; the desired # of repetitions
+;
+; PartiaLin-line code to clear the high bits of 4 bytes per
+; pass through the loop.
+;
+ClearHighBitsLoop:
+rept 4
+and [bx],al ;clear the high bit of this
+; byte
+inc bx ;point to the next byte
+endm
+InLineBitClearEnd:
+loop ClearHighBitsLoop
+ret
+```
+
+## Listing 13-27
+
+```nasm
+;
+; *** Listing 13-27 ***
+;
+; Determines whether two zero-terminated strings differ, and
+; if so where, using LODS/SCAS and partiaLin-line code.
+;
+jmp Skip
+;
+TestString1 label byte
+db 'This is a test string that is '
+db 'z'
+db 'terminated with a zero byte...',0
+TestString2 label byte
+db 'This is a test string that is '
+db 'a'
+db 'terminated with a zero byte...',0
+;
+; Compares two zero-terminated strings.
+;
+; Input:
+; DS:SI = first zero-terminated string
+; ES:DI = second zero-terminated string
+;
+; Output:
+; DS:SI = pointer to first differing location in
+; first string, or 0 if the byte wasn't found
+; ES:DI = pointer to first differing location in
+; second string, or 0 if the byte wasn't found
+;
+; Registers altered: AX, SI, DI
+;
+; Direction flag cleared
+;
+; Note: Does not handle strings that are longer than 64K
+; bytes or cross segment boundaries.
+;
+CompareStrings:
+cld
+CompareStringsLoop:
+;
+; First 7 repetitions of partiaLin-line code.
+;
+rept 7
+lodsw ;get the next 2 bytes
+and al,al ;is the first byte the terminating
+; zero?
+jz CompareStringsFinalByte
+;yes, so there's only one byte left
+; to check
+scasw ;compare this word
+jnz CompareStringsDifferent ;the strings differ
+and ah,ah ;is the second byte the terminating
+; zero?
+jz CompareStringsSame
+;yes, we've got a match
+endm
+;
+; Final repetition of partiaLin-line code.
+;
+lodsw ;get the next 2 bytes
+and al,al ;is the first byte the terminating
+; zero?
+jz CompareStringsFinalByte
+;yes, so there's only one byte left
+; to check
+scasw ;compare this word
+jnz CompareStringsDifferent ;the strings differ
+and ah,ah ;is the second byte the terminating
+; zero?
+jnz CompareStringsLoop ;no, continue comparing
+;the strings are the same
+CompareStringsSame:
+sub si,si ;return 0 pointers indicating that
+mov di,si ; the strings are identical
+ret
+CompareStringsFinalByte:
+scasb ;does the terminating zero match in
+; the 2 strings?
+jz CompareStringsSame ;yes, the strings match
+dec si ;point back to the differing byte
+dec di ; in each string
+ret
+CompareStringsDifferent:
+;the strings are different, so we
+; have to figure which byte in the
+; word just compared was the first
+; difference
+dec si
+dec si ;point back to the first byte of the
+dec di ; differing word in each string
+dec di
+lodsb
+scasb ;compare that first byte again
+jz CompareStringsDone
+;if the first bytes are the same,
+; then it must have been the second
+; bytes that differed. That's where
+; we're pointing, so we're done
+dec si ;the first bytes differed, so point
+dec di ; back to them
+CompareStringsDone:
+ret
+;
+Skip:
+call ZTimerOn
+mov si,offset TestString1 ;point to one string
+mov di,seg TestString2
+mov es,di
+mov di,offset TestString2 ;point to other string
+call CompareStrings ;and compare the strings
+call ZTimerOff
+```

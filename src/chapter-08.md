@@ -28,7 +28,7 @@ The designers of the 8088 provided such "source-level" compatibility by making t
 
 For example, the 8088's 16-bit AX, BX, CX, and DX registers can also be accessed as paired 8-bit registers, thereby making it possible for the 8088 to mimic the seven 8-bit program-accessible registers and the 8-bit FLAGS register of the 8080, as shown in Figure 8.1. In particular, the 8088's BH and BL registers can be used together as the BX register to address memory, just as the 8080's HL register pair can.
 
-![](images/fig8.1RT.png)
+![](../images/fig8.1RT.png)
 
 The register correspondence between the 8080 and 8088 is not perfect. For one thing, neither CX nor DX can be used to address memory as the 8080's BC and DE register pairs can; however, the 8088's `xchg`{.nasm} instruction and/or index registers can readily be used to compensate for this. Similarly, the 8080 can push both the flags and the accumulator onto the stack with a single instruction, while the 8088 cannot. As we'll see later in this chapter, though, the designers of the 8088 provided two instructions—`lahf`{.nasm} and `sahf`{.nasm}—to take care of that very problem.
 
@@ -60,7 +60,7 @@ The accumulator-specific 8088 instructions fall into two categories: instruction
 
 The 8088 lets you address memory operands in a great many different ways—16 ways, to be precise, as we saw in Chapter 7. This flexibility is one of the strengths of the 8088, and is one way in which the 8088 far exceeds the 8080. There's a price for that flexibility, though, and that's the *mod-reg-rm* byte, which we encountered in Chapter 7. To briefly recap, the *mod-reg-rm* byte is a second instruction byte, immediately following the opcode byte of most instructions that access memory, which specifies which of 32 possible addressing modes are to be used to select the source and/or destination for the instruction. (8 of the addressing modes are used to select the 8 general-purpose registers as operands, and 8 addressing modes differ only in the size of the displacement field, hence the discrepancy between the 32 addressing modes and the 16 ways to address memory operands.) Together, the *mod-reg-rm* byte and the 16-bit displacement required for direct addressing mean that any instruction that uses *mod-reg-rm* direct addressing must be at least 4 bytes long, as shown in Figure 8.2.
 
-![](images/fig8.2RT.png)
+![](../images/fig8.2RT.png)
 
 Direct addressing is used whenever you simply want to refer to a memory location by name, with no pointing or indexing. For example, a counter named `Count`{.nasm} could be incremented with direct addressing as follows:
 
@@ -72,7 +72,7 @@ Direct addressing is intuitive and convenient, and is one of the most heavily us
 
 Since direct addressing is one of the very few addressing modes of the 8080, and since the 8088's designers needed to make sure that ported 8080 code ran reasonably well on the 8088, there are 8088 instructions that do nothing more than load and store the accumulator from and to memory via direct addressing. These instructions are only 3 bytes long, as shown in Figure 8.3; better yet, they execute in just 10 cycles, rather than the 14 (memory read) or 15 (memory write) cycles required by *mod-reg-rm* memory accesses that use direct addressing. (Those cycle counts are for byte-sized accesses; add 4 cycles to both forms of `mov`{.nasm} for word-sized accesses.)
 
-![](images/fig8.3RT.png)
+![](../images/fig8.3RT.png)
 
 ### Looks Aren't Everything
 
@@ -90,7 +90,7 @@ mov   dl,[Count]
 
 look like they refer to the same instruction, the machine code assembled from the two differs greatly, as shown in Figure 8.4; the first instruction is a byte shorter and 4 cycles faster than the second.
 
-![](images/fig8.4RT.png)
+![](../images/fig8.4RT.png)
 
 Odder still, there are actually *two* legitimate machine-language forms of the assembler code for each of the accumulator-specific direct-addressing instructions (and, indeed, for all the accumulator-specific instructions discussed in this chapter), as shown in Figure 8.5. Any 8088 assembler worth its salt automatically assembles the shorter form, of course, so the longer, general-purpose versions of the accumulator-specific instructions aren't used. Still, the mere existence of two forms of the accumulator-specific instructions points up the special-case nature of these instructions and the general irregularity of the 8088's instruction set.
 
@@ -98,13 +98,13 @@ Odder still, there are actually *two* legitimate machine-language forms of the a
 
 How much difference does the use of the accumulator-specific direct-addressing instructions make? Generally, less difference than the official timings in Appendix A would indicate, but a significant difference
 
-![](images/fig8.5RT.png)
+![](../images/fig8.5RT.png)
 
 nonetheless—and you save a byte every time you use an accumulator-specific direct-addressing instruction, as well.
 
 Suppose you want to copy the value of one byte-sized memory variable to another byte-sized memory variable. A common way to perform this simple task is to read the value of the first variable into a register, then write the value from the register to the other variable. [Listing 8-1](#listing-8-1) shows a code fragment that performs such a byte copy 1000 times by way of the AH register. Since the accumulator is neither source nor destination in [Listing 8-1](#listing-8-1), the 4-byte *mod-reg-rm* direct-addressing form of `mov`{.nasm} is assembled for each instruction; consequently, 8 bytes of code are assembled in order to copy each byte via AH, as shown in Figure 8.6. (Remember that AH is not considered the accumulator. For 8-bit operations, AL is the accumulator, and for 16-bit operations, AX is the accumulator, but AH by itself is just another general-purpose register.)
 
-![](images/fig8.6RT.png)
+![](../images/fig8.6RT.png)
 
 Plugged into the Zen timer test program, [Listing 8-1](#listing-8-1) yields an average time per byte copied of 10.06 us, or about 48 cycles per byte copied. That's considerably longer than the 29 cycles per byte copied you'd expect from adding up the official cycle times given in Appendix A; the difference is the result of the prefetch queue and dynamic RAM refresh cycle-eaters. We can't cover all the aspects of code performance at once, so for the moment let's just discuss the implications of the times reported by the Zen timer. Remember, no matter how much theory of code performance you've mastered, there's still only one reliable way to know how fast PC code really is—measure it!
 
@@ -112,7 +112,7 @@ Plugged into the Zen timer test program, [Listing 8-1](#listing-8-1) yields an a
 
 Enough said.
 
-![](images/fig8.7RT.png)
+![](../images/fig8.7RT.png)
 
 ### When Should You Use Them?
 
@@ -175,11 +175,11 @@ Actively pursue the possibilities in your assembler code. You never know where t
 
 The 8088 also offers special accumulator-specific versions of a number of arithmetic and logical instructions—`adc`{.nasm}, `add`{.nasm}, `and`{.nasm}, `cmp`{.nasm}, `or`{.nasm}, `sub`{.nasm}, `sbb`{.nasm}, and `xor`{.nasm}—when these instructions are used with one register operand and one immediate operand. (Remember that an immediate operand is a constant operand that is built right into an instruction.) The *mod-reg-rm* immediate-addressing versions of the above instructions, when used with a register as the destination operand, are 3 bytes long for byte comparisons and 4 bytes long for word comparisons, as shown in Figure 8.8. The accumulator-specific immediate-addressing versions, on the other hand, are 2 bytes long for byte comparisons and 3 bytes long for word comparisons, as shown in Figure 8.9. Although the official cycle counts listed in Appendix A for all immediate-addressing forms of these instructions—accumulator-specific or otherwise—are all 4 when used with a register as the destination, shorter is generally faster, thanks to the prefetch queue cycle-eater.
 
-![](images/fig8.8RT.png)
+![](../images/fig8.8RT.png)
 
 Let's see how much faster the accumulator-specific immediate-addressing form of `cmp`{.nasm} is than the *mod-reg-rm* version. (The results will hold true for all 8 accumulator-specific immediate-addressing instructions, since they all have the same sizes and execution times.) The Zen timer reports that each accumulator-specific `cmp`{.nasm} in [Listing 8-8](#listing-8-8) takes 1.81 us, making it 50% faster than the *mod-reg-rm* version in [Listing 8-9](#listing-8-9), which clocks in at 2.71 us per comparison. It is not in the least coincidental that the ratio of the execution times, 3:2, is the same as the ratio of instruction lengths in bytes; the performance difference is entirely due to the difference in instruction lengths.
 
-![](images/fig8.9RT.png)
+![](../images/fig8.9RT.png)
 
 There are two *caveats* regarding accumulator-specific immediate-addressing instructions. First, unlike the accumulator-specific form of the direct-addressing `mov`{.nasm} instruction, the accumulator-specific immediate-addressing instructions can't work with memory operands. For instance, `add al,[Temp]`{.nasm} assembles to a *mod-reg-rm* instruction, not to an accumulator-specific instruction.
 
@@ -187,7 +187,7 @@ Second, there's no advantage to using the accumulator-specific immediate-address
 
 An important note: some 8088 references indicate that while immediate operands to arithmetic instructions can be sign-extended, immediate operands to logical instructions—`xor`{.nasm}, `and`{.nasm}, and `or`{.nasm}—cannot. Not true! Immediate operands to logical instructions *can* be sign-extended, and MASM does so automatically whenever possible.
 
-![](images/fig8.10RT.png)
+![](../images/fig8.10RT.png)
 
 Remember, if you're not sure exactly what instructions the assembler is generating from your source code, you can always look at the instructions directly with a disassembler. Alternatively, you can look at the assembled hex bytes at the left side of the assembly listing.
 
@@ -197,7 +197,7 @@ Let's look at a real-world example of saving bytes and cycles with accumulator-s
 
 The simplest approach to setting the equipment flag to 80-column color text mode is shown in [Listing 8-10](#listing-8-10); this code uses one *mod-reg-rm* `and` instruction and one *mod-reg-rm* `or`{.nasm} instruction to set the equipment flag in 18.86 us. By contrast, [Listing 8-11](#listing-8-11) uses four accumulator-specific instructions to set the equipment flag. Even though [Listing 8-11](#listing-8-11) uses two more instructions than [Listing 8-10](#listing-8-10), it is 12.5% faster, taking only 16.76 us to set the equipment flag.
 
-![](images/fig8.11RT.png)
+![](../images/fig8.11RT.png)
 
 ### Other Accumulator-Specific Instructions
 
@@ -259,9 +259,9 @@ Yet another aspect of the Zen of assembler.
 
 Finally, we come to the strangest part of the 8080 legacy, the `lahf`{.nasm} and `sahf`{.nasm} instructions. `lahf`{.nasm} loads AH with the lower byte of the 8088's FLAGS register, as shown in Figure 8.12. Not coincidentally, the lower byte of the FLAGS register contains the 8088 equivalents of the 8080's flags, and those flags are located in precisely the same bit positions in the lower byte of the 8088's FLAGS register as they are in the 8080's FLAGS register. `sahf`{.nasm} reverses the action of `lahf`{.nasm}, loading the 8080-compatible flags into the 8088's FLAGS register by copying AH to the lower byte of the 8088's FLAGS register, as shown in Figure 8.13.
 
-![](images/fig8.12RT.png)
+![](../images/fig8.12RT.png)
 
-![](images/fig8.13RT.png)
+![](../images/fig8.13RT.png)
 
 Why do these odd instructions exist? Simply to allow the 8088 to emulate efficiently the 8080's `push psw`{.nasm} and `pop psw`{.nasm} instructions, which transfer both the 8080's accumulator and FLAGS register to and from the stack as a single word. The 8088 sequence:
 
@@ -320,3 +320,436 @@ Interesting optimizations aside, `lahf`{.nasm} and `sahf`{.nasm} are always pref
 ### Onward Through the Instruction Set
 
 Given the extent to which the 8080 influenced the decidedly unusual architecture and instruction set of the 8088, it is interesting (although admittedly pointless) to wonder what might have been had the 8080 been less successful, allowing Intel to make a clean break with the past when the 8088 was designed. Still, the 8088 is what it is—so it's on to the rest of the instruction set for us.
+
+## Listing 8-1
+
+```nasm
+;
+; *** Listing 8-1 ***
+;
+; Copies a byte via AH, with memory addressed with
+; mod-reg-rm direct addressing.
+;
+jmp Skip
+;
+SourceValue db 1
+DestValue db 0
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov ah,[SourceValue]
+mov [DestValue],ah
+endm
+call ZTimerOff
+```
+
+## Listing 8-2
+
+```nasm
+;
+; *** Listing 8-2 ***
+;
+; Copies a byte via AL, with memory addressed with
+; accumulator-specific direct addressing.
+;
+jmp Skip
+;
+SourceValue db 1
+DestValue db 0
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov al,[SourceValue]
+mov [DestValue],al
+endm
+call ZTimerOff
+```
+
+## Listing 8-3
+
+```nasm
+;
+; *** Listing 8-3 ***
+;
+; Tests the zero/non-zero status of a variable via
+; the direct-addressing mod-reg-rm form of CMP.
+;
+jmp Skip
+;
+TestValue dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+cmp [TestValue],0
+endm
+call ZTimerOff
+```
+
+## Listing 8-4
+
+```nasm
+;
+; *** Listing 8-4 ***
+;
+; Tests the zero/non-zero status of a variable via
+; the accumulator-specific form of MOV followed by a
+; register-register AND.
+;
+jmp Skip
+;
+TestValue dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov ax,[TestValue]
+and ax,ax
+endm
+call ZTimerOff
+```
+
+## Listing 8-5
+
+```nasm
+;
+; *** Listing 8-5 ***
+;
+; Initializes a variable to 1 by setting AX to 1, then
+; using the accumulator-specific form of MOV to store
+; that value to a direct-addressed operand.
+;
+jmp Skip
+;
+InitialValue dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov ax,1
+mov [InitialValue],ax
+endm
+call ZTimerOff
+```
+
+## Listing 8-6
+
+```nasm
+;
+; *** Listing 8-6 ***
+;
+; Initializes a variable to 1 via the direct-addressing
+; mod-reg-rm form of MOV.
+;
+jmp Skip
+;
+InitialValue dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+mov [InitialValue],1
+endm
+call ZTimerOff
+```
+
+## Listing 8-7
+
+```nasm
+;
+; *** Listing 8-7 ***
+;
+; Initializes a variable to 0 via a register-register SUB,
+; followed by the accumulator-specific form of MOV to a
+; direct-addressed operand.
+;
+jmp Skip
+;
+InitialValue dw ?
+;
+Skip:
+call ZTimerOn
+rept 1000
+sub ax,ax
+mov [InitialValue],ax
+endm
+call ZTimerOff
+```
+
+## Listing 8-8
+
+```nasm
+;
+; *** Listing 8-8 ***
+;
+; The accumulator-specific immediate-addressing form of CMP.
+;
+call ZTimerOn
+rept 1000
+cmp al,1
+endm
+call ZTimerOff
+```
+
+## Listing 8-9
+
+```nasm
+;
+; *** Listing 8-9 ***
+;
+; The mod-reg-rm immediate-addressing form of CMP with a
+; register as the destination operand.
+;
+call ZTimerOn
+rept 1000
+cmp bl,1
+endm
+call ZTimerOff
+```
+
+## Listing 8-10
+
+```nasm
+;
+; *** Listing 8-10 ***
+;
+; Sets the BIOS equipment flag to select an 80-column
+; color monitor.
+; Uses mod-reg-rm AND and OR instructions.
+;
+call ZTimerOn
+rept 1000
+sub ax,ax
+mov es,ax ;point ES to the segment at 0
+and byte ptr es:[410h],not 30h
+;mask off the adapter bits
+or byte ptr es:[410h],20h
+;set the adapter bits to select
+; 80-column color
+endm
+call ZTimerOff
+```
+
+## Listing 8-11
+
+```nasm
+;
+; *** Listing 8-11 ***
+;
+; Sets the BIOS equipment flag to select an 80-column
+; color monitor.
+; Uses accumulator-specific MOV, AND, and OR instructions.
+;
+call ZTimerOn
+rept 1000
+sub ax,ax
+mov es,ax ;point ES to the segment at 0
+mov al,es:[410h] ;get the equipment flag
+and al,not 30h ;mask off the adapter bits
+or al,20h ;set the adapter bits to select
+; 80-column color
+mov es:[410h],al ;set the new equipment flag
+endm
+call ZTimerOff
+```
+
+## Listing 8-12
+
+```nasm
+;
+; *** Listing 8-12 ***
+;
+; Adds together bytes from two arrays, subtracts a byte from
+; another array from the sum, and stores the result in a fourth
+; array, for all elements in the arrays.
+; Uses the AX-specific form of XCHG.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+Array1 db ARRAY_LENGTH dup (3)
+Array2 db ARRAY_LENGTH dup (2)
+Array3 db ARRAY_LENGTH dup (1)
+Array4 db ARRAY_LENGTH dup (?)
+;
+Skip:
+mov ax,offset Array1 ;set up array pointers
+mov bx,offset Array2
+mov si,offset Array3
+mov di,offset Array4
+mov cx,ARRAY_LENGTH
+call ZTimerOn
+ProcessingLoop:
+xchg ax,bx ;point BX to Array1,
+; point AX to Array2
+mov dl,[bx] ;get next byte from Array1
+xchg ax,bx ;point BX to Array2,
+; point AX to Array1
+add dl,[bx] ;add Array2 element to Array1
+sub dl,[si] ;subtract Array3 element
+mov [di],dl ;store result in Array4
+inc ax ;point to next element of each array
+inc bx
+inc si
+inc di
+loop ProcessingLoop ;do the next element
+call ZTimerOff
+```
+
+## Listing 8-13
+
+```nasm
+;
+; *** Listing 8-13 ***
+;
+; Adds together bytes from two arrays, subtracts a byte from
+; another array from the sum, and stores the result in a fourth
+; array, for all elements in the arrays.
+; Uses the mod-reg-rm form of XCHG.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+Array1 db ARRAY_LENGTH dup (3)
+Array2 db ARRAY_LENGTH dup (2)
+Array3 db ARRAY_LENGTH dup (1)
+Array4 db ARRAY_LENGTH dup (?)
+;
+Skip:
+mov dx,offset Array1
+mov bx,offset Array2
+mov si,offset Array3
+mov di,offset Array4
+mov cx,ARRAY_LENGTH
+call ZTimerOn
+ProcessingLoop:
+xchg dx,bx ;point BX to Array1,
+; point DX to Array2
+mov al,[bx] ;get next byte from Array1
+xchg dx,bx ;point BX to Array2,
+; point DX to Array1
+add al,[bx] ;add Array2 element to Array1
+sub al,[si] ;subtract Array3 element
+mov [di],al ;store result in Array4
+inc dx ;point to next element of each array
+inc bx
+inc si
+inc di
+loop ProcessingLoop ;do the next element
+call ZTimerOff
+```
+
+## Listing 8-14
+
+```nasm
+;
+; *** Listing 8-14 ***
+;
+; Adds AL to each element in an array until the result
+; of an addition exceeds 7Fh.
+; Uses PUSHF and POPF.
+;
+jmp Skip
+;
+Data db 999 dup (0),7fh
+;
+Skip:
+mov bx,offset Data
+mov al,2 ;we'll add 2 to each array element
+call ZTimerOn
+AddLoop:
+add [bx],al ;add the value to this element
+pushf ;save the sign flag
+inc bx ;point to the next array element
+popf ;get back the sign flag
+jns AddLoop ;do the next element, if any
+call ZTimerOff
+```
+
+## Listing 8-15
+
+```nasm
+;
+; *** Listing 8-15 ***
+;
+; Adds AL to each element in an array until the result
+; of an addition exceeds 7Fh.
+; Uses LAHF and SAHF.
+;
+jmp Skip
+;
+Data db 999 dup (0),7fh
+;
+Skip:
+mov bx,offset Data
+mov al,2 ;we'll add 2 to each array element
+call ZTimerOn
+AddLoop:
+add [bx],al ;add the value to this element
+lahf ;save the sign flag
+inc bx ;point to the next array element
+sahf ;get back the sign flag
+jns AddLoop ;do the next element, if any
+call ZTimerOff
+```
+
+## Listing 8-16
+
+```nasm
+;
+; *** Listing 8-16 ***
+;
+; Adds AL to each element in an array until the result
+; of an addition exceeds 7Fh.
+; Uses two jumps in the loop, with a finaLiNC to adjust
+; BX for the last addition.
+;
+jmp Skip
+;
+Data db 999 dup (0),7fh
+;
+Skip:
+mov bx,offset Data
+mov al,2 ;we'll add 2 to each array element
+call ZTimerOn
+AddLoop:
+add [bx],al ;add the value to this element
+js EndAddLoop ;done if Sign flag set
+inc bx ;point to the next array element
+jmp AddLoop ;do the next element
+EndAddLoop:
+inc bx ;adjust BX for the final addition
+call ZTimerOff
+```
+
+## Listing 8-17
+
+```nasm
+;
+; *** Listing 8-17 ***
+;
+; Adds AL to each element in an array until the result
+; of an addition exceeds 7Fh.
+; Uses one jump in the loop, with a predecrement before
+; the loop, an INC before the ADD in the loop, and a final
+; INC to adjust BX for the last addition.
+;
+jmp Skip
+;
+Data db 999 dup (0),7fh
+;
+Skip:
+mov bx,offset Data
+mov al,2 ;we'll add 2 to each array element
+call ZTimerOn
+dec bx ;compensate for the initiaLiNC
+AddLoop:
+inc bx ;point to the next array element
+add [bx],al ;add the value to this element
+jns AddLoop ;do the next element, if any
+EndAddLoop:
+inc bx ;adjust BX for the final addition
+call ZTimerOff
+```

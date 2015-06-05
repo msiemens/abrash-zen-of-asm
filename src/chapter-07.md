@@ -81,7 +81,7 @@ Actually, we *don't* need 16 bits of segment. We could manage to address 1 Mb pe
 
 Anyway, although we only need 4 bits of segment, we get 16 bits, and none of them are ignored by the 8088. 20-bit addresses are formed from segment:offset pairs by shifting the segment 4 bits to the left and adding it to the offset, as shown in Figure 7.1.
 
-![](images/fig7.1RT.png)
+![](../images/fig7.1RT.png)
 
 I'd like to take a moment to note that for the remainder of this book, I'll use light lines to signify memory addressing in figures and heavy lines to show data movement, as illustrated by Figure 7.1. In the future, I'll show segment:offset memory addressing by simply joining the lines from the segment register and any registers and/or displacements (fixed values) used to generate an offset, as in Figure 7.7, avoiding the shift-and-add complications of Figure 7.1(A); the 4-bit left shift of the segment and the addition to the offset to generate a 20-bit memory address, which occurs whenever a segment:offset address is used, is implied. Also, when the segment isn't germane to the discussion at hand, I may omit it and show only the offset component or components, as in Figure 7.4; although unseen, the segment is implied, since one segment register must participate in forming virtually every 20-bit memory address, as we'll see shortly.
 
@@ -146,7 +146,7 @@ Now that we know how segments and offsets work, what are the implications for as
 
 The bad news is this: while there's a lot of memory, it's only available in 64 Kb chunks. The four segment registers can only point to four 64 Kb segments at any one time, as shown in Figure 7.2.
 
-![](images/fig7.2RT.png)
+![](../images/fig7.2RT.png)
 
 If you want to access a memory location that's not in any of the four currently pointed-to segments, there is *no way* to do that with a single instruction. You must first load a segment register to point to a segment containing the desired memory location, a process which takes a minimum of 1 and often 2 instructions. Only then can you access the desired memory location.
 
@@ -452,7 +452,7 @@ However, the designers of the 8088 anticipated the need for loading 20-bit point
 
 `lds`{.nasm} loads *both* DS and any one general-purpose register from a doubleword of memory, and `les`{.nasm} similarly loads *both* ES and a general-purpose register, as shown in Figure 7.3.
 
-![](images/fig7.3RT.png)
+![](../images/fig7.3RT.png)
 
 While both instructions are useful, `les`{.nasm} is by far the more commonly used of the two. Since most programs leave DS pointing to the default data segment whenever possible, it's rare that we'd want to load DS as part of a segment:offset pointer. True, it does happen, but generally only when we want to point to a block of far memory temporarily for faster processing in a tight loop.
 
@@ -628,7 +628,7 @@ mov   ah,byte ptr [WordVar+1]
 
 although the single-instruction version is much faster and smaller. All word-sized values (including address displacements, which we'll get to shortly) follow this least-significant-byte-first memory ordering.
 
-![](images/fig7.4RT.png)
+![](../images/fig7.4RT.png)
 
 Similarly, segment:offset pointers are stored with the least-significant byte of the offset at the lowest memory address, the most-significant byte of the offset next, the least-significant byte of the segment after that, and the most-significant byte of the segment at the highest memory address, as shown in Figure 7.5. This:
 
@@ -653,7 +653,7 @@ mov   ah,byte ptr [FarPtr+3]
 mov   es,ax
 ```
 
-![](images/fig7.5RT.png)
+![](../images/fig7.5RT.png)
 
 This organization applies to all segment:offset values stored in memory, including return addresses placed on the stack by far calls, far pointers used by far indirect calls, and interrupt vectors.
 
@@ -874,19 +874,19 @@ There are a number of ways in which the offset of an instruction operand can be 
 
 *mod-reg-rm* addressing modes are so named because they're specified by a second instruction byte, known as the *mod-reg-rm* byte, that follows instruction opcodes in order to specify the memory and/or register operands for many instructions. The *mod-reg-rm* byte gets its name because the various fields within the byte are used to specify the memory addressing *mod*e, the *reg*ister used for one operand, and the *r*egister or *m*emory location used for the other operand, as shown in Figure 7.6. (Figure 7.6 should make it clear that at most only one *mod-reg-rm* operand can be a memory operand; one or both operands must be register operands, for there just aren't enough bits in a *mod-reg-rm* byte to specify two memory operands.)
 
-![](images/fig7.6RT.png)
+![](../images/fig7.6RT.png)
 
 Simply put, the *mod-reg-rm* byte tells the 8088 where to find an instruction's operand or operands. (It's up to the opcode byte to specify the data size, as well as which operand is the source and which is the destination.) When a memory operand is used, the *mod-reg-rm* byte tells the 8088 how to add together the contents of registers (BX or BP and/or SI or DI) and/or a fixed value built into the instruction (a displacement) in order to generate the operand's memory offset. The offset is then combined with the contents of one of the segment registers to make a full 20-bit memory address, as we saw earlier in this chapter, and that 20-bit address serves as the instruction operand. Figure 7.7 illustrates the operation of the complex base+index+displacement addressing mode, in which an offset is generated by adding BX or BP, SI or DI, and a fixed displacement. (Note that displacements are built right into instructions, coming immediately after *mod-reg-rm* bytes, as illustrated by Figure 7.9.)
 
-![](images/fig7.7RT.png)
+![](../images/fig7.7RT.png)
 
 For example, if the opcode for `mov reg8,[reg/mem8]`{.nasm} (8Ah) is followed by the *mod-reg-rm* byte 17h, that indicates that the register DL is to be loaded from the memory location pointed to by BX, as shown in Figure 7.8. Put the other way around, `mov dl,[bx]`{.nasm} assembles to the two byte sequence 8Ah 17h, where the first byte is the opcode for `mov reg8,[reg/mem8]`{.nasm} and the second byte is the *mod-reg-rm* byte that selects DL as the destination and the memory location pointed to by BX as the source.
 
-![](images/fig7.8RT.png)
+![](../images/fig7.8RT.png)
 
 You may well wonder how the *mod-reg-rm* byte works with one-operand instructions, such as `neg word ptr ds:[140h]`{.nasm}, or with instructions that have constant data as one operand, such as `sub [WordVar],1`{.nasm}. The answer is that in these cases the *reg* field isn't used for source or destination control; instead, it's used as an extension of the opcode byte. So, for instance, `neg [reg/mem16]`{.nasm} has an opcode byte of 0F7h and always has bits 5-3 of the *mod-reg-rm* byte set to 011b. Bits 7-6 and 2-0 of the *mod-reg-rm* byte still select the memory addressing mode for the single operand, but bits 5-3, together with the opcode byte, now simply tell the 8088 that the instruction is `neg [reg/mem16]`{.nasm}, as shown in Figure 7.9. `not [reg/mem16]`{.nasm} also has an opcode byte of 0F7h, but is distinguished from `neg [reg/mem16]`{.nasm} by bits 5-3 of the *mod-reg-rm* byte, which are 010b for `not`{.nasm} and 011b for `neg`{.nasm}.
 
-![](images/fig7.9RT.png)
+![](../images/fig7.9RT.png)
 
 At any rate, the mechanics of *mod-reg-rm* addressing aren't what we need to concern ourselves with; the assembler takes care of such details, thank goodness. We do, however, need to concern ourselves with the *implications* of *mod-reg-rm* addressing, particularly size and performance issues.
 
@@ -1026,7 +1026,7 @@ Each *mod-reg-rm* instruction has its own fixed Execution Unit execution time, w
 
 The EA calculation time, on the other hand, depends not in the least on which instruction is being executed. EA calculation time is determined solely by the *mod-reg-rm* addressing mode used, and nothing else, as shown in Figure 7.10. As you can see from Figure 7.10, the time it takes the 8088 to calculate an effective address can vary greatly, ranging from a mere 5 cycles if a single register is used to point to memory all the way up to 11 or 12 cycles if the sum of two registers and a displacement is used to point to memory. (Segment override prefixes require an additional 2 cycles each, as we saw earlier.) When I discuss the performance of an instruction that uses *mod-reg-rm* addressing, I'll often say that it takes at least a certain number of cycles to execute. What "at least" means is that the instruction will take that many cycles if the fastest *mod-reg-rm* addressing mode—base-or index-only—is used, and longer if some other *mod-reg-rm* addressing mode is selected.
 
-![](images/fig7.10RT.png)
+![](../images/fig7.10RT.png)
 
 Only *mod-reg-rm* memory operands require EA calculations. There is no EA calculation time for register operands, or for memory operands accessed with non-*mod-reg-rm* addressing modes.
 
@@ -1270,7 +1270,7 @@ mov   bx,0ffffh
 mov   dl,[bx+1]
 ```
 
-![](images/fig7.11RT.png)
+![](../images/fig7.11RT.png)
 
 The same rule holds for all memory-accessing instructions, *mod-reg-rm* or otherwise: *offsets are 16-bit values; any additional bits that result from address calculations are ignored*. Put another way, memory addresses that reach past the end of a segment's 64 K limit wrap back to the start of the segment. This allows the use of negative displacements, and is the reason a displacement can always reach anywhere in a segment, including addresses lower than those in the base and/or index registers, as in `mov ax,[bx-1]`{.nasm}.
 
@@ -1298,7 +1298,7 @@ The string instructions are without question the most powerful instructions of t
 
 Immediate addressing is a form of memory addressing in which the constant value of one operand is built right into the instruction. You should think of immediate operands as being addressed by IP, since they directly follow opcode bytes or *mod-reg-rm* bytes, as shown in Figure 7.12.
 
-![](images/fig7.12RT.png)
+![](../images/fig7.12RT.png)
 
 Instructions that use immediate addressing are clearly faster than instructions that use *mod-reg-rm* addressing. In fact, according to official execution times, immediate addressing would seem to be *much* faster than *mod-reg-rm* addressing. For example, `add ax,1`{.nasm} is a 4-cycle instruction, while `add ax,[bx]`{.nasm} is an 18-cycle instruction. What's more, `add reg,immed`{.nasm} is just 1 cycle slower than `add reg,reg`{.nasm}, so immediate addressing seems to be nearly as fast as register addressing.
 
@@ -1519,7 +1519,7 @@ SP always points to the next item to be popped from the stack. When you push a v
 
 Finally, please remember that once you've popped a value from the stack, it's gone from memory. It's tempting to look at the way the stack pointer works and think that the data is still in memory at the address just below the new stack pointer, but that's simply not the case, as shown in Figure 7.13. Sure, *sometimes* the data is still there—but whenever an interrupt occurs, it uses the top of the stack, wiping out the values that were most recently popped. Interrupts can happen at any time, so unless you're willing to disable interrupts, accessing popped stack memory is a sure way to get intermittent bugs.
 
-![](images/fig7.13RT.png)
+![](../images/fig7.13RT.png)
 
 Even if interrupts are disabled, it's really not a good idea to access popped stack data. Why bother, when stack frames give you the same sort of access to stack data, but in a straightforward, risk-free way? Not coincidentally, stack frames are our next topic, but first let me emphasize: once you've popped data off the stack, it's gone from memory. Vanished. Kaput. Extinct. For all intents and purposes, that data is nonexistent.
 
@@ -1706,7 +1706,7 @@ At long last, we come to the final addressing mode of the 8088. This addressing 
 
 The operation of `xlat`{.nasm} is simple: AL is loaded from the offset addressed by the sum of BX and AL, as shown in Figure 7. 14. DS is the default data segment, but a segment override prefix may be used.
 
-![](images/fig7.14RT.png)
+![](../images/fig7.14RT.png)
 
 As you can see, `xlat`{.nasm} bears no resemblance to any of the other addressing modes. It's certainly limited, and it always wipes out one of the two registers it uses to address memory (AL). In fact, the first thought that leaps to mind is: why would we *ever* want to use `xlat`{.nasm}?
 
@@ -1912,3 +1912,996 @@ We've come to the end of our discussion of memory addressing. Memory addressing 
 Before we leave the realm of memory addressing, let me repeat: *avoid memory*. Use the registers to the hilt; register-only instructions are shorter and faster. If you must access memory, try not to use *mod-reg-rm* addressing; the special memory-accessing instructions, such as the string instructions and `xlat`{.nasm}, are generally shorter and faster. When you do use *mod-reg-rm* addressing, try not to use displacements, especially 2-byte displacements.
 
 Last but not least, choose your spots. Don't waste time optimizing non-critical code; focus on loops and other chunks of code in which every cycle counts. Assembler programming is not some sort of game where the object is to save cycles and bytes blindly. Rather, the goal is a dual one: to produce whole programs that perform well *and to produce those programs as quickly as possible*. The key to doing that is knowing how to optimize code, and then doing so in time-critical code—and *only* in time-critical code.
+
+
+## Listing 7-1
+
+```nasm
+;
+; *** Listing 7-1 ***
+;
+; Calculates the 16-bit sum of all bytes in a 64Kb block.
+;
+; Time with LZTIME.BAT, since this takes more than
+; 54 ms to run.
+;
+        call    ZTimerOn
+        sub     bx,bx       ;we'll just sum the data segment
+        sub     cx,cx       ;count 64K bytes
+        mov     ax,cx       ;set initial sum to 0
+        mov     dh,ah       ;set DH to 0 for summing later
+SumLoop:
+        mov     dl,[bx]     ;get this byte
+        add     ax,dx       ;add the byte to the sum
+        inc     bx          ;point to the next byte
+        loop    SumLoop
+        call    ZTimerOff
+```
+
+## Listing 7-2
+
+```nasm
+;
+; *** Listing 7-2 ***
+;
+; Calculates the 16-bit sum of all bytes in a 128Kb block.
+;
+; Time with LZTIME.BAT, since this takes more than
+; 54 ms to run.
+;
+        call    ZTimerOn
+        sub     bx,bx       ;we'll just sum the 128Kb starting
+                            ; at DS:0
+        sub     cx,cx       ;count 128K bytes with SI:CX
+        mov     si,2
+        mov     ax,cx       ;set initial sum to 0
+        mov     dh,ah       ;set DH to 0 for summing later
+SumLoop:
+        mov     dl,[bx]     ;get this byte
+        add     ax,dx       ;add the byte to the sum
+        inc     bx          ;point to the next byte
+        and     bx,0fh      ;time to advance the segment?
+        jnz     SumLoopEnd  ;not yet
+        mov     di,ds       ;advance the segment by 1; since BX
+        inc     di          ; has just gone from 15 to 0, we've
+        mov     ds,di       ; advanced 1 byte in all
+SumLoopEnd:
+        loop    SumLoop
+        dec     si
+        jnz     SumLoop
+        call    ZTimerOff
+```
+
+## Listing 7-3
+
+```nasm
+;
+; *** Listing 7-3 ***
+;
+; Calculates the 16-bit sum of all bytes in a 128Kb block
+; using optimized code that takes advantage of the knowledge
+; that the first byte summed is at offset 0 in its segment.
+;
+; Time with LZTIME.BAT, since this takes more than
+; 54 ms to run.
+;
+        call    ZTimerOn
+        sub     bx,bx       ;we'll just sum the 128Kb starting
+                            ; at DS:0
+        mov     cx,2        ;count two 64Kb blocks
+        mov     ax,bx       ;set initial sum to 0
+        mov     dh,ah       ;set DH to 0 for summing later
+SumLoop:
+        mov     dl,[bx]     ;get this byte
+        add     ax,dx       ;add the byte to the sum
+        inc     bx          ;point to the next byte
+        jnz     SumLoop     ;go until we wrap at the end of a
+                            ; 64Kb block
+        mov     si,ds
+        add     si,1000h    ;advance the segment by 64K bytes
+        mov     ds,si
+        loop    SumLoop     ;count down 64Kb blocks
+        call    ZTimerOff
+```
+
+## Listing 7-4
+
+```nasm
+;
+; *** Listing 7-4 ***
+;
+; Adds one far array to another far array as a high-level
+; language would, loading each far pointer with LES every
+; time it's needed.
+;
+        jmp     Skip
+;
+ARRAY_LENGTH    equ     1000
+Array1      db  ARRAY_LENGTH dup (1)
+Array2      db  ARRAY_LENGTH dup (2)
+;
+; Adds one byte-sized array to another byte-sized array.
+; C-callable.
+;
+; Input: parameters on stack as in AddArraysParms
+;
+; Output: none
+;
+; Registers altered: AL, BX, CX, ES
+;
+AddArraysParms  struc
+        dw  ?               ;pushed BP
+        dw  ?               ;return address
+FarPtr1 dd  ?               ;pointer to array to be added to
+FarPtr2 dd  ?               ;pointer to array to add to the
+; other array
+AddArraysLength dw      ?   ;# of bytes to add
+AddArraysParms  ends
+;
+AddArrays   proc    near
+        push    bp                          ;save caller's BP
+        mov     bp,sp                       ;point to stack frame
+        mov     cx,[bp+AddArraysLength]
+                                            ;get the length to add
+AddArraysLoop:
+        les     bx,[bp+FarPtr2]             ;point to the array to add
+                                            ; from
+        inc     word ptr [bp+FarPtr2]
+                                            ;point to the next byte
+                                            ; of the array to add from
+        mov     al,es:[bx]                  ;get the array element to
+                                            ; add
+        les     bx,[bp+FarPtr1]             ;point to the array to add
+                                            ; to
+        inc     word ptr [bp+FarPtr1]
+                                            ;point to the next byte
+                                            ; of the array to add to
+        add     es:[bx],al                  ;add to the array
+        loop    AddArraysLoop
+        pop     bp                          ;restore caller's BP
+        ret
+AddArrays   endp
+;
+Skip:
+        call    ZTimerOn
+        mov     ax,ARRAY_LENGTH
+        push    ax                  ;pass the length to add
+        push    ds                  ;pass segment of Array2
+        mov     ax,offset Array2
+        push    ax                  ;pass offset of Array2
+        push    ds                  ;pass segment of Array1
+        mov     ax,offset Array1
+        push    ax                  ;pass offset of Array1
+        call    AddArrays
+        add     sp,10               ;clear the parameters
+        call    ZTimerOff
+```
+
+## Listing 7-5
+
+```nasm
+;
+; *** Listing 7-5 ***
+;
+; Adds one far array to another far array as only assembler
+; can, loading the two far pointers once and keeping them in
+; the registers during the entire loop for speed.
+;
+        jmp     Skip
+;
+ARRAY_LENGTH    equ     1000
+Array1      db  ARRAY_LENGTH dup (1)
+Array2      db  ARRAY_LENGTH dup (2)
+;
+; Adds one byte-sized array to another byte-sized array.
+; C-callable.
+;
+; Input: parameters on stack as in AddArraysParms
+;
+; Output: none
+;
+; Registers altered: AL, BX, CX, DX, ES
+;
+AddArraysParms  struc
+        dw  ?               ;pushed BP
+        dw  ?               ;return address
+FarPtr1 dd  ?               ;pointer to array to be added to
+FarPtr2 dd  ?               ;pointer to array to add to the
+                            ; other array
+AddArraysLength     dw  ?   ;# of bytes to add
+AddArraysParms      ends
+;
+AddArrays   proc    near
+        push    bp                      ;save caller's BP
+        mov     bp,sp                   ;point to stack frame
+        push    si                      ;save registers used by many
+        push    di                      ; C compilers for register
+                                        ; variables
+        mov     cx,[bp+AddArraysLength]
+                                        ;get the length to add
+        les     si,[bp+FarPtr2]         ;point to the array to add
+                                        ; from
+        mov     dx,es                   ;set aside the segment
+        les     bx,[bp+FarPtr1]         ;point to the array to add
+                                        ; to
+        mov     di,es                   ;set aside the segment
+AddArraysLoop:
+        mov     es,dx                   ;point ES:SI to the next
+                                        ; byte of the array to add
+                                        ; from
+        mov     al,es:[si]              ;get the array element to
+                                        ; add
+        inc     si                      ;point to the next byte of
+                                        ; the array to add from
+        mov     es,di                   ;point ES:BX to the next
+                                        ; byte of the array to add
+                                        ; to
+        add     es:[bx],al              ;add to the array
+        inc     bx                      ;point to the next byte of
+                                        ; the array to add to
+        loop    AddArraysLoop
+        pop     di                      ;restore registers used by
+        pop     si                      ; many C compilers for
+                                        ; register variables
+        pop     bp                      ;restore caller's BP
+        ret
+        AddArrays   endp
+;
+Skip:
+        call    ZTimerOn
+        mov     ax,ARRAY_LENGTH
+        push    ax                  ;pass the length to add
+        push    ds                  ;pass segment of Array2
+        mov     ax,offset Array2
+        push    ax                  ;pass offset of Array2
+        push    ds                  ;pass segment of Array1
+        mov     ax,offset Array1
+        push    ax                  ;pass offset of Array1
+        call    AddArrays
+        add     sp,10               ;clear the parameters
+        call    ZTimerOff
+```
+
+## Listing 7-6
+
+```nasm
+;
+; *** Listing 7-6 ***
+;
+; Adds one far array to another far array by temporarily
+; switching segments in order to allow the use of the most
+; efficient possible instructions within the loop.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+Array1 db ARRAY_LENGTH dup (1)
+Array2 db ARRAY_LENGTH dup (2)
+;
+; Adds one byte-sized array to another byte-sized array.
+; C-callable.
+;
+; Input: parameters on stack as in AddArraysParms
+;
+; Output: none
+;
+; Registers altered: AL, BX, CX, ES
+;
+; Direction flag cleared
+;
+AddArraysParms struc
+dw ? ;pushed BP
+dw ? ;return address
+FarPtr1 dd ? ;pointer to array to be added to
+FarPtr2 dd ? ;pointer to array to add to the
+; other array
+AddArraysLength dw ? ;# of bytes to add
+AddArraysParms ends
+;
+AddArrays proc near
+push bp ;save caller's BP
+mov bp,sp ;point to stack frame
+push si ;save register used by many
+; C compilers for register
+; variables
+push ds ;save normal DS, since we're
+; going to switch data
+; segments for the duration
+; of the loop
+mov cx,[bp+AddArraysLength]
+;get the length to add
+les bx,[bp+FarPtr1] ;point to the array to add
+; to
+lds si,[bp+FarPtr2] ;point to the array to add
+; from
+cld ;make LODSB increment SI
+AddArraysLoop:
+lodsb ;get the array element to
+; add
+add es:[bx],al ;add to the other array
+inc bx ;point to the next byte of
+; the array to add to
+loop AddArraysLoop
+pop ds ;restore normal DS
+pop si ;restore register used by
+; many C compilers for
+; register variables
+pop bp ;restore caller's BP
+ret
+AddArrays endp
+;
+Skip:
+call ZTimerOn
+mov ax,ARRAY_LENGTH
+push ax ;pass the length to add
+push ds ;pass segment of Array2
+mov ax,offset Array2
+push ax ;pass offset of Array2
+push ds ;pass segment of Array1
+mov ax,offset Array1
+push ax ;pass offset of Array1
+call AddArrays
+add sp,10 ;clear the parameters
+call ZTimerOff
+```
+
+## Listing 7-7
+
+```nasm
+;
+; *** Listing 7-7 ***
+;
+; Strips the high bit of every byte in a byte-sized array,
+; using a segment override prefix.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (0ffh)
+;
+; Strips the high bit of every byte in a byte-sized array.
+;
+; Input:
+; CX = length of array
+; ES:BX = pointer to start of array
+;
+; Output: none
+;
+; Registers altered: AL, BX
+;
+StripHighBits proc near
+mov al,not 80h ;bit pattern for stripping
+; high bits, loaded into a
+; register outside the loop
+; so we can use fast
+; register-to-memory ANDing
+; inside the loop
+StripHighBitsLoop:
+and es:[bx],al ;strip this byte's high bit
+inc bx ;point to next byte
+loop StripHighBitsLoop
+ret
+StripHighBits endp
+;
+Skip:
+call ZTimerOn
+mov bx,seg TestArray
+mov es,bx
+mov bx,offset TestArray ;point to array
+; which will have
+; high bits stripped
+call StripHighBits ;strip the high bits
+call ZTimerOff
+```
+
+## Listing 7-8
+
+```nasm
+;
+; *** Listing 7-8 ***
+;
+; Strips the high bit of every byte in a byte-sized array
+; without using a segment override prefix.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (0ffh)
+;
+; Strips the high bit of every byte in a byte-sized array.
+;
+; Input:
+; CX = length of array
+; ES:BX = pointer to start of array
+;
+; Output: none
+;
+; Registers altered: AL, BX
+;
+StripHighBits proc near
+push ds ;save normal DS
+mov ax,es ;point DS to the array's
+mov ds,ax ; segment
+mov al,not 80h ;bit pattern for stripping
+; high bits, loaded into a
+; register outside the loop
+; so we can use fast
+; register-to-memory ANDing
+; inside the loop
+StripHighBitsLoop:
+and [bx],al ;strip this byte's high bit
+inc bx ;point to next byte
+loop StripHighBitsLoop
+pop ds ;restore normal DS
+ret
+StripHighBits endp
+;
+Skip:
+call ZTimerOn
+mov bx,seg TestArray
+mov es,bx
+mov bx,offset TestArray ;point to array
+; which will have
+; high bits stripped
+call StripHighBits ;strip the high bits
+call ZTimerOff
+```
+
+## Listing 7-9
+
+```nasm
+;
+; *** Listing 7-9 ***
+;
+; Adds up the elements of a byte-sized array using
+; base+index+displacement addressing inside the loop.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (1)
+TEST_START_OFFSET equ 200 ;we'll add elements 200-299
+TEST_LENGTH equ 100 ; of TestArray
+;
+Skip:
+call ZTimerOn
+mov bx,TEST_START_OFFSET
+;for base+index+displacement
+sub si,si ; addressing
+sub ax,ax ;initialize sum
+sub dl,dl ;store 0 in DL so we can use
+; it for faster register-
+; register adds in the loop
+mov cx,TEST_LENGTH ;# of bytes to add
+SumArrayLoop:
+add al,[TestArray+bx+si] ;add in the next byte
+adc ah,dl ; to the 16-bit sum
+inc si ;point to next byte
+loop SumArrayLoop
+call ZTimerOff
+```
+
+## Listing 7-10
+
+```nasm
+;
+; *** Listing 7-10 ***
+;
+; Adds up the elements of a byte-sized array using
+; base+index addressing inside the loop.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (1)
+TEST_START_OFFSET equ 200 ;we'll add elements 200-299
+TEST_LENGTH equ 100 ; of TestArray
+;
+Skip:
+call ZTimerOn
+mov bx,offset TestArray+TEST_START_OFFSET
+;build the array start
+; offset right into the
+; base so we can use
+; base+index addressing,
+sub si,si ; with no displacement
+sub ax,ax ;initialize sum
+sub dl,dl ;store 0 in DL so we can use
+; it for faster register-
+; register adds in the loop
+mov cx,TEST_LENGTH ;# of bytes to add
+SumArrayLoop:
+add al,[bx+si] ;add in the next byte
+adc ah,dl ; to the 16-bit sum
+inc si ;point to next byte
+loop SumArrayLoop
+call ZTimerOff
+```
+
+## Listing 7-11
+
+```nasm
+;
+; *** Listing 7-11 ***
+;
+; Adds up the elements of a byte-sized array using
+; base-only addressing inside the loop.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (1)
+TEST_START_OFFSET equ 200 ;we'll add elements 200-299
+TEST_LENGTH equ 100 ; of TestArray
+;
+Skip:
+call ZTimerOn
+mov bx,offset TestArray+TEST_START_OFFSET
+;build the array start
+; offset right into the
+; base so we can use
+; base addressing, with no
+; displacement
+sub ax,ax ;initialize sum
+sub dl,dl ;store 0 in DL so we can use
+; it for faster register-
+; register adds in the loop
+mov cx,TEST_LENGTH ;# of bytes to add
+SumArrayLoop:
+add al,[bx] ;add in the next byte
+adc ah,dl ; to the 16-bit sum
+inc bx ;point to next byte
+loop SumArrayLoop
+call ZTimerOff
+```
+
+## Listing 7-12
+
+```nasm
+;
+; *** Listing 7-12 ***
+;
+; Adds up the elements of a byte-sized array using
+; base-only addressing inside the loop, and using
+; an immediate operand with ADC.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (1)
+TEST_START_OFFSET equ 200 ;we'll add elements 200-299
+TEST_LENGTH equ 100 ; of TestArray
+;
+Skip:
+call ZTimerOn
+mov bx,offset TestArray+TEST_START_OFFSET
+;build the array start
+; offset right into the
+; base so we can use
+; base+index addressing,
+; with no displacement
+sub ax,ax ;initialize sum
+mov cx,TEST_LENGTH ;# of bytes to add
+SumArrayLoop:
+add al,[bx] ;add in the next byte
+adc ah,0 ; to the 16-bit sum
+inc bx ;point to next byte
+loop SumArrayLoop
+call ZTimerOff
+```
+
+## Listing 7-13
+
+```nasm
+;
+; *** Listing 7-13 ***
+;
+; Adds up the elements of a byte-sized array using
+; base-only addressing inside the loop, and using
+; a memory operand with ADC.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+TestArray db ARRAY_LENGTH dup (1)
+TEST_START_OFFSET equ 200 ;we'll add elements 200-299
+TEST_LENGTH equ 100 ; of TestArray
+MemZero db 0 ;the constant value 0
+;
+Skip:
+call ZTimerOn
+mov bx,offset TestArray+TEST_START_OFFSET
+;build the array start
+; offset right into the
+; base so we can use
+; base+index addressing,
+; with no displacement
+sub ax,ax ;initialize sum
+mov cx,TEST_LENGTH ;# of bytes to add
+SumArrayLoop:
+add al,[bx] ;add in the next byte
+adc ah,[MemZero] ; to the 16-bit sum
+inc bx ;point to next byte
+loop SumArrayLoop
+call ZTimerOff
+```
+
+## Listing 7-14
+
+```nasm
+;
+; *** Listing 7-14 ***
+;
+; Performs bit-doubling of a byte in AL to a word in AX
+; by using doubled shifts, one from each of two source
+; registers. This approach avoids branching and is very
+; fast according to officiaLinstruction timings, but is
+; actually quite slow due to instruction prefetching.
+;
+; (Based on an approach used in "Optimizing for Speed,"
+; by Michael Hoyt, Programmer's Journal 4.2, March, 1986.)
+;
+; Macro to double each bit in a byte.
+;
+; Input:
+; AL = byte to bit-double
+;
+; Output:
+; AX = bit-doubled word
+;
+; Registers altered: AX, BX
+;
+DOUBLE_BYTE macro
+mov ah,al ;put the byte to double in two
+; registers
+mov bx,ax
+rept 8
+shr bl,1 ;get the next bit to double
+rcr ax,1 ;move it into the msb...
+shr bh,1 ;...then get the bit again...
+rcr ax,1 ;...and replicate it
+endm
+endm
+;
+call ZTimerOn
+BYTE_TO_DOUBLE=0
+rept 100
+mov al,BYTE_TO_DOUBLE
+DOUBLE_BYTE
+BYTE_TO_DOUBLE=BYTE_TO_DOUBLE+1
+endm
+call ZTimerOff
+```
+
+## Listing 7-15
+
+```nasm
+;
+; *** Listing 7-15 ***
+;
+; Performs very fast bit-doubling of a byte in AL to a
+; word in AX by using a look-up table.
+; This approach avoids both branching and the severe
+; instruction-fetching penalty of the shift-based approach.
+;
+; Macro to double each bit in a byte.
+;
+; Input:
+; AL = byte to bit-double
+;
+; Output:
+; AX = bit-doubled word
+;
+; Registers altered: AX, BX
+;
+DOUBLE_BYTE macro
+mov bl,al ;move the byte to look up to BL,
+sub bh,bh ; make a word out of the value,
+shl bx,1 ; and double the value so we can
+; use it as a pointer into the
+; table of word-sized doubled byte
+; values
+mov ax,[DoubledByteTable+bx]
+;look up the doubled byte value
+endm
+;
+jmp Skip
+DOUBLED_VALUE=0
+DoubledByteTable label word
+dw 00000h,00003h,0000ch,0000fh,00030h,00033h,0003ch,0003fh
+dw 000c0h,000c3h,000cch,000cfh,000f0h,000f3h,000fch,000ffh
+dw 00300h,00303h,0030ch,0030fh,00330h,00333h,0033ch,0033fh
+dw 003c0h,003c3h,003cch,003cfh,003f0h,003f3h,003fch,003ffh
+dw 00c00h,00c03h,00c0ch,00c0fh,00c30h,00c33h,00c3ch,00c3fh
+dw 00cc0h,00cc3h,00ccch,00ccfh,00cf0h,00cf3h,00cfch,00cffh
+dw 00f00h,00f03h,00f0ch,00f0fh,00f30h,00f33h,00f3ch,00f3fh
+dw 00fc0h,00fc3h,00fcch,00fcfh,00ff0h,00ff3h,00ffch,00fffh
+;
+dw 03000h,03003h,0300ch,0300fh,03030h,03033h,0303ch,0303fh
+dw 030c0h,030c3h,030cch,030cfh,030f0h,030f3h,030fch,030ffh
+dw 03300h,03303h,0330ch,0330fh,03330h,03333h,0333ch,0333fh
+dw 033c0h,033c3h,033cch,033cfh,033f0h,033f3h,033fch,033ffh
+dw 03c00h,03c03h,03c0ch,03c0fh,03c30h,03c33h,03c3ch,03c3fh
+dw 03cc0h,03cc3h,03ccch,03ccfh,03cf0h,03cf3h,03cfch,03cffh
+dw 03f00h,03f03h,03f0ch,03f0fh,03f30h,03f33h,03f3ch,03f3fh
+dw 03fc0h,03fc3h,03fcch,03fcfh,03ff0h,03ff3h,03ffch,03fffh
+;
+dw 0c000h,0c003h,0c00ch,0c00fh,0c030h,0c033h,0c03ch,0c03fh
+dw 0c0c0h,0c0c3h,0c0cch,0c0cfh,0c0f0h,0c0f3h,0c0fch,0c0ffh
+dw 0c300h,0c303h,0c30ch,0c30fh,0c330h,0c333h,0c33ch,0c33fh
+dw 0c3c0h,0c3c3h,0c3cch,0c3cfh,0c3f0h,0c3f3h,0c3fch,0c3ffh
+dw 0cc00h,0cc03h,0cc0ch,0cc0fh,0cc30h,0cc33h,0cc3ch,0cc3fh
+dw 0ccc0h,0ccc3h,0cccch,0cccfh,0ccf0h,0ccf3h,0ccfch,0ccffh
+dw 0cf00h,0cf03h,0cf0ch,0cf0fh,0cf30h,0cf33h,0cf3ch,0cf3fh
+dw 0cfc0h,0cfc3h,0cfcch,0cfcfh,0cff0h,0cff3h,0cffch,0cfffh
+;
+dw 0f000h,0f003h,0f00ch,0f00fh,0f030h,0f033h,0f03ch,0f03fh
+dw 0f0c0h,0f0c3h,0f0cch,0f0cfh,0f0f0h,0f0f3h,0f0fch,0f0ffh
+dw 0f300h,0f303h,0f30ch,0f30fh,0f330h,0f333h,0f33ch,0f33fh
+dw 0f3c0h,0f3c3h,0f3cch,0f3cfh,0f3f0h,0f3f3h,0f3fch,0f3ffh
+dw 0fc00h,0fc03h,0fc0ch,0fc0fh,0fc30h,0fc33h,0fc3ch,0fc3fh
+dw 0fcc0h,0fcc3h,0fccch,0fccfh,0fcf0h,0fcf3h,0fcfch,0fcffh
+dw 0ff00h,0ff03h,0ff0ch,0ff0fh,0ff30h,0ff33h,0ff3ch,0ff3fh
+dw 0ffc0h,0ffc3h,0ffcch,0ffcfh,0fff0h,0fff3h,0fffch,0ffffh
+;
+Skip:
+call ZTimerOn
+BYTE_TO_DOUBLE=0
+rept 100
+mov al,BYTE_TO_DOUBLE
+DOUBLE_BYTE
+BYTE_TO_DOUBLE=BYTE_TO_DOUBLE+1
+endm
+call ZTimerOff
+```
+
+## Listing 7-16
+
+```nasm
+;
+; *** Listing 7-16 ***
+;
+; Performs fast, compact bit-doubling of a byte in AL
+; to a word in AX by using two nibble look-ups rather
+; than a byte look-up.
+;
+; Macro to double each bit in a byte.
+;
+; Input:
+; AL = byte to bit-double
+;
+; Output:
+; AX = bit-doubled word
+;
+; Registers altered: AX, BX, CL
+;
+DOUBLE_BYTE macro
+mov bl,al ;move the byte to look up to BL
+sub bh,bh ; and make a word out of the value
+mov cl,4 ;make a look-up pointer out of the
+shr bx,cl ; upper nibble of the byte
+mov ah,[DoubledNibbleTable+bx]
+;look up the doubled upper nibble
+mov bl,al ;get the byte to look up again,
+and bl,0fh ; and make a pointer out of the
+; lower nibble this time
+mov al,[DoubledNibbleTable+bx]
+;look up the doubled lower nibble
+endm
+;
+jmp Skip
+DOUBLED_VALUE=0
+DoubledNibbleTable label byte
+db 000h, 003h, 00ch, 00fh
+db 030h, 033h, 03ch, 03fh
+db 0c0h, 0c3h, 0cch, 0cfh
+db 0f0h, 0f3h, 0fch, 0ffh
+;
+Skip:
+call ZTimerOn
+BYTE_TO_DOUBLE=0
+rept 100
+mov al,BYTE_TO_DOUBLE
+DOUBLE_BYTE
+BYTE_TO_DOUBLE=BYTE_TO_DOUBLE+1
+endm
+call ZTimerOff
+```
+
+## Listing 7-17
+
+```nasm
+;
+; *** Listing 7-17 ***
+;
+; Performs fast, compact bit-doubling of a byte in AL
+; to a word in AX by using two nibble look-ups. Overall
+; code length and performance are improved by
+; using base indexed addressing (bx+si) rather than base
+; direct addressing (bx+DoubleNibbleTable). Even though
+; an additional 3-byte MOV instruction is required to load
+; SI with the offset of DoubleNibbleTable, each access to
+; DoubleNibbleTable is 2 bytes shorter thanks to the
+; elimination of mod-reg-rm displacements.
+;
+; Macro to double each bit in a byte.
+;
+; Input:
+; AL = byte to bit-double
+;
+; Output:
+; AX = bit-doubled word
+;
+; Registers altered: AX, BX, CL, SI
+;
+DOUBLE_BYTE macro
+mov bl,al ;move the byte to look up to BL
+sub bh,bh ; and make a word out of the value
+mov cl,4 ;make a look-up pointer out of the
+shr bx,cl ; upper nibble of the byte
+mov si,offset DoubledNibbleTable
+mov ah,[si+bx]
+;look up the doubled upper nibble
+mov bl,al ;get the byte to look up again,
+and bl,0fh ; and make a pointer out of the
+; lower nibble this time
+mov al,[si+bx]
+;look up the doubled lower nibble
+endm
+;
+jmp Skip
+DOUBLED_VALUE=0
+DoubledNibbleTable label byte
+db 000h, 003h, 00ch, 00fh
+db 030h, 033h, 03ch, 03fh
+db 0c0h, 0c3h, 0cch, 0cfh
+db 0f0h, 0f3h, 0fch, 0ffh
+;
+Skip:
+call ZTimerOn
+BYTE_TO_DOUBLE=0
+rept 100
+mov al,BYTE_TO_DOUBLE
+DOUBLE_BYTE
+BYTE_TO_DOUBLE=BYTE_TO_DOUBLE+1
+endm
+call ZTimerOff
+```
+
+## Listing 7-18
+
+```nasm
+;
+; *** Listing 7-18 ***
+;
+; Performs fast, compact bit-doubling of a byte in AL
+; to a word in AX by using two nibble look-ups. Overall
+; code length and performance are improved by
+; using XLAT to look up the nibbles.
+;
+; Macro to double each bit in a byte.
+;
+; Input:
+; AL = byte to bit-double
+;
+; Output:
+; AX = bit-doubled word
+;
+; Registers altered: AX, BX, CL
+;
+DOUBLE_BYTE macro
+mov ah,al ;set aside the byte to look up
+mov cl,4 ;make a look-up pointer out of the
+shr al,cl ; upper nibble of the byte (XLAT
+; uses AL as an index pointer)
+mov bx,offset DoubledNibbleTable
+;XLAT uses BX as a base pointer
+xlat ;look up the doubled value of the
+; upper nibble
+xchg ah,al ;store the doubled upper nibble in AH
+; and get back the value to double
+and al,0fh ;make a look-up pointer out of the
+; lower nibble of the byte
+xlat ;look up the doubled value of the
+; lower nibble of the byte
+endm
+;
+jmp Skip
+DOUBLED_VALUE=0
+DoubledNibbleTable label byte
+db 000h, 003h, 00ch, 00fh
+db 030h, 033h, 03ch, 03fh
+db 0c0h, 0c3h, 0cch, 0cfh
+db 0f0h, 0f3h, 0fch, 0ffh
+;
+Skip:
+call ZTimerOn
+BYTE_TO_DOUBLE=0
+rept 100
+mov al,BYTE_TO_DOUBLE
+DOUBLE_BYTE
+BYTE_TO_DOUBLE=BYTE_TO_DOUBLE+1
+endm
+call ZTimerOff
+```
+
+## Listing 7-19
+
+```nasm
+;
+; *** Listing 7-19 ***
+;
+; Measures the performance of multiplying by 80 with
+; the MULinstruction
+;
+sub ax,ax
+call ZTimerOn
+rept 1000
+mov ax,10 ;so we have a constant value to
+; multiply by
+mov dx,80 ;amount to multiply by
+mul dx
+endm
+call ZTimerOff
+```
+
+## Listing 7-20
+
+```nasm
+;
+; *** Listing 7-20 ***
+;
+; Measures the performance of multiplying by 80 with
+; shifts and adds.
+;
+sub ax,ax
+call ZTimerOn
+rept 1000
+mov ax,10 ;so we have a constant value to
+; multiply by
+mov cl,4
+shl ax,cl ;times 16
+mov cx,ax ;set aside times 16
+shl ax,1 ;times 32
+shl ax,1 ;times 64
+add ax,cx ;times 80 (times 64 + times 16)
+endm
+call ZTimerOff
+```
+
+## Listing 7-21
+
+```nasm
+;
+; *** Listing 7-21 ***
+;
+; Measures the performance of multiplying by 80 with
+; a table look-up.
+;
+jmp Skip
+;
+; Table of multiples of 80, covering the range 80 times 0
+; to 80 times 479.
+;
+Times80Table label word
+TIMES_80_SUM=0
+rept 480
+dw TIMES_80_SUM
+TIMES_80_SUM=TIMES_80_SUM+80
+endm
+;
+Skip:
+sub ax,ax
+call ZTimerOn
+rept 1000
+mov ax,10 ;so we have a constant value to
+; multiply by
+mov bx,ax ;put the factor where we can use it
+; for a table look-up
+shl bx,1 ;times 2 for use as an index in a
+; word-sized look-up table
+mov ax,[Times80Table+bx]
+;look up the answer
+endm
+call ZTimerOff
+```

@@ -22,7 +22,7 @@ This chapter is a tour of the string instructions, not a tutorial. We'll be movi
 
 `lodsb`{.nasm} ("load string byte") reads the byte addressed by DS:SI (the source operand) into AL and then either increments or decrements SI, depending on the setting of the direction flag, as shown in Figure 10.1.
 
-![](images/fig10.1RT.png)
+![](../images/fig10.1RT.png)
 
 `lodsw`{.nasm} ("load string word") reads the word addressed by DS:SI into AX and then adds or subtracts 2 to or from SI, again depending on the state of the direction flag. In either case, the use of DS as the segment can be overridden, as we'll see later.
 
@@ -50,7 +50,7 @@ Never assume, though: string instructions aren't superior in *all* cases. Always
 
 `stosb`{.nasm} ("store string byte") writes the value in AL to the byte addressed by ES:DI (the destination operand) and then either increments or decrements DI, depending on the setting of the direction flag. `stosw`{.nasm} ("store string word") writes the value in AX to the word addressed by ES:DI and then adds or subtracts 2 to or from DI, again depending on the direction flag, as shown in Figure 10.2. The use of ES as the destination segment cannot be overridden.
 
-![](images/fig10.2RT.png)
+![](../images/fig10.2RT.png)
 
 `stos`{.nasm} is the preferred way to initialize arrays, strings, and other blocks of memory, especially when used with the `rep`{.nasm} prefix, which we'll discuss shortly. `stos`{.nasm} also works well with `lods`{.nasm} for tasks that require performing some sort of translation while copying arrays or strings, such as conversion of a text string to uppercase. In this use, `lods`{.nasm} loads an array element into AL, the element is translated in AL, and `stos`{.nasm} stores the element to the new array. Put a loop around all that and you've got a compact, fast translation routine. We'll discuss this further in the next chapter.
 
@@ -58,7 +58,7 @@ Never assume, though: string instructions aren't superior in *all* cases. Always
 
 `movsb`{.nasm} ("move string byte") copies the value stored at the byte addressed by DS:SI (the source operand) to the byte addressed by ES:DI (the destination operand) and then either increments or decrements SI and DI, depending on the setting of the direction flag, as shown in Figure 10.3.
 
-![](images/fig10.3RT.png)
+![](../images/fig10.3RT.png)
 
 `movsw`{.nasm} ("move string word") copies the value stored at the word addressed by DS:SI to the word addressed by ES:DI and then adds or subtracts 2 to or from SI or DI, again depending on the direction flag. The use of DS as the source segment can be overridden, but the use of ES as the destination segment cannot.
 
@@ -70,9 +70,9 @@ Note that the accumulator is not affected by `movs`{.nasm}; the data is copied d
 
 `scasb`{.nasm} ("scan string byte") compares AL to the byte addressed by ES:DI (the source operand) and then either increments or decrements DI, depending on the setting of the direction flag, as shown in Figure 10.4.
 
-![](images/fig10.4aRT.png)
+![](../images/fig10.4aRT.png)
 
-![](images/fig10.4bRT.png)
+![](../images/fig10.4bRT.png)
 
 `scasw`{.nasm} ("scan string word") compares the value in AX to the word addressed by ES:DI and then adds or subtracts 2 to or from DI, again depending on the direction flag. The use of ES as the source segment cannot be overridden.
 
@@ -126,9 +126,9 @@ True enough, and you should use the first approach whenever you can. I've chosen
 
 `cmpsb`{.nasm} ("compare string byte") compares the byte addressed by DS:SI (the destination operand) to the byte addressed by ES:DI (the source operand) and then either increments or decrements SI and DI, depending on the setting of the direction flag. `cmpsw`{.nasm} ("compare string word") compares the value stored at the word addressed by DS:SI to the word addressed by ES:DI and then adds or subtracts 2 to or from SI and DI, again depending on the direction flag, as shown in Figure 10.5.
 
-![](images/fig10.5aRT.png)
+![](../images/fig10.5aRT.png)
 
-![](images/fig10.5bRT.png)
+![](../images/fig10.5bRT.png)
 
 The use of DS as the destination segment can be overridden, but the use of ES as the source segment cannot.
 
@@ -210,7 +210,7 @@ stosw
 stosw
 ```
 
-![](images/fig10.6RT.png)
+![](../images/fig10.6RT.png)
 
 The `rep`{.nasm}-based version takes a bit more set-up, but it's worth it. Because `rep stosw`{.nasm} (requiring one 2-byte instruction fetch) replaces ten `stosw`{.nasm} instructions (requiring ten 1-byte instruction fetches), we can replace 20 instruction bytes with 15 instruction bytes. The instruction fetching benefits should be obvious.
 
@@ -248,11 +248,11 @@ By contrast, because the 8088 simply holds a repeated string instruction inside 
 
 Let's look at this from a different perspective. The 8088 must fetch 6000 instruction bytes (6 bytes per loop times 1000 loops, as shown in Figure 10.7) when the loop in [Listing 10-7](#listing-10-7) executes.
 
-![](images/fig10.7RT.png)
+![](../images/fig10.7RT.png)
 
 The `rep stosw`{.nasm} instruction in [Listing 10-8](#listing-10-8), on the other hand, requires the fetching of exactly 2 instruction bytes *in total*, as shown in Figure 10.8—quite a difference!
 
-![](images/fig10.8RT.png)
+![](../images/fig10.8RT.png)
 
 Better still, the prefetch queue can fill completely whenever a string instruction is repeated a few times. Fast as string instructions are, they don't keep the bus busy all the time. Since repetitions of string instructions require no additional instruction fetching, there's plenty of time for the instruction bytes of the following instructions to be fetched while string instructions repeat. On balance, then, repeated string instructions not only require very little fetching for a great many executions, but also allow the prefetch queue to fill with the bytes of the following instructions.
 
@@ -393,9 +393,9 @@ The lesson is simple: whenever you use a repeated word-sized string instruction,
 
 Sometimes it's a little tricky figuring out where your pointers are after a string instruction finishes. That's because each string instruction advances its pointer or pointers only *after* performing its primary function, so pointers are always one location past the last byte or word processed, as shown in Figures 10.9 and 10.10. This is definitely a convenience with `lods`{.nasm}, `stos`{.nasm}, and `movs`{.nasm}, since it always leaves the pointers ready for the next operation. However, it can be a nuisance with `scas`{.nasm} and `cmps`{.nasm}, because it complicates the process of calculating exactly where a match or non-match occurred.
 
-![](images/fig10.9RT.png)
+![](../images/fig10.9RT.png)
 
-![](images/fig10.10RT.png)
+![](../images/fig10.10RT.png)
 
 Along the same lines, CX counts down one time more than you might expect when repeated `scas`{.nasm} and `cmps`{.nasm} instructions find their termination conditions. Suppose, for instance, that a `repnz scasb`{.nasm} instruction is started with CX equal to 100 and DI equal to 0. If the very first byte, byte 0, is a match, the `repnz scasb`{.nasm} instruction will terminate. However, CX will contain 99, not 100, and DI will contain 1, not 0.
 
@@ -431,7 +431,7 @@ First of all, let me point out that there's never a problem in covering large bl
 
 You'll surely recall that string instructions advance pointer registers. Those pointer registers are SI, DI or both SI and DI. Notice that we didn't mention anything about advancing DS, ES, or any other segment register. That's because the string instructions don't affect the segment registers. The implication should be pretty obvious: like all the memory addressing instructions of the 8088, the string instructions can only access those bytes that lie within the 64 Kb ranges of their associated segment registers, as shown in Figure 10.11. (We'll discuss the relationships between the segment registers and the string instructions in detail shortly.)
 
-![](images/fig10.11RT.png)
+![](../images/fig10.11RT.png)
 
 Granted, `movs`{.nasm} and `cmps`{.nasm} can access source bytes in one 64 Kb block and destination bytes in another 64 Kb block, but each pointer register has a maximum range of 64 K, and that's that.
 
@@ -439,9 +439,9 @@ While the string instructions are limited to operating within 64 Kb blocks, that
 
 The largest value a 16-bit register can contain is 0FFFFh. Consequently, SI and DI turn over from 0FFFFh to 0 as they are incremented by a string instruction (or from 0 to 0FFFFh as they're decremented.) This effectively causes each string instruction pointer to wrap when it reaches the end of the segment it's operating within, as shown in Figure 10.12.
 
-![](images/fig10.12aRT.png)
+![](../images/fig10.12aRT.png)
 
-![](images/fig10.12bRT.png)
+![](../images/fig10.12bRT.png)
 
 This means that a string instruction can't access part or all of just *any* 64 Kb block starting at a given segment:offset address, but only the 64 Kb block starting at the address *segment*:0, where *segment* is whichever of CS, DS, ES, or SS the string instruction is using. For instance:
 
@@ -457,13 +457,13 @@ rep   stosw
 
 won't clear the 32 K words starting at A000:8000, but rather the 32 K words starting at A000:0000. The words will be cleared in the following order: the words from A000:8000 to A000:FFFE will be cleared first, followed by the words from A000:0000 to A000:7FFE, as shown in Figure 10.13.
 
-![](images/fig10.13RT.png)
+![](../images/fig10.13RT.png)
 
 Now you can see why it's pointless to repeat a word-sized string instruction more than 8000h times. Repetitions after 8000h simply access the same addresses as the first 8000h repetitions, as shown in Figure 10.14.
 
-![](images/fig10.14aRT.png)
+![](../images/fig10.14aRT.png)
 
-![](images/fig10.14bRT.png)
+![](../images/fig10.14bRT.png)
 
 That brings us back to the original problem of handling both zero-length and 64 Kb blocks that consist of byte-sized elements. It should be clear that there's no way that a single block of code can handle both zero-length and 64 Kb blocks unless the block length is stored in something larger than a 16-bit register. Handling both the zero-length and 64 Kb cases and everything in-between takes 64 K+1 counter values, one more than the 64 K values that can be stored in 16 bits. Simply put, if CX is zero, that can mean "handle zero bytes" or "handle 64 K bytes,"but it can't mean both.
 
@@ -489,7 +489,7 @@ The 80386 has similar constraints involving doubleword alignment. We'll discuss 
 
 The second warning concerns the use of word-sized string instructions to access EGA and VGA display memory in modes 0Dh, 0Eh, 0Fh, 10h, and 12h. In each these modes it's possible to copy 4 bytes of video data -1 byte from each of the four planes at once by loading the 4 bytes into four special latches in the adapter with a single read and then storing all 4 latches back to display memory with a single write, as shown in Figure 10.15.
 
-![](images/fig10.15RT.png)
+![](../images/fig10.15RT.png)
 
 Use of the latches can greatly speed graphics code; for example, copying via the latches can improve the performance of tasks that require block copies from one part of display memory to another, such as scrolling, by a factor of four over normal byte-at-a-time copying techniques.
 
@@ -645,3 +645,649 @@ If you have some time-critical task that absolutely requires the use of a repeat
 ### On to String Instruction Applications
 
 We haven't covered *everything* there is to know about the string instructions, but we have touched on the important points. Now we're ready to see the string instructions in action. To an assembler programmer, that's a pleasant sight indeed.
+
+## Listing 10-1
+
+```nasm
+;
+; *** Listing 10-1 ***
+;
+; Loads each byte in a 1000-byte array into AL, using
+; MOV and INC.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (0)
+;
+Skip:
+call ZTimerOn
+mov si,offset ByteArray
+;point to the start of the array
+rept ARRAY_LENGTH
+mov al,[si] ;get this array byte
+inc si ;point to the next byte in the array
+endm
+call ZTimerOff
+```
+
+## Listing 10-2
+
+```nasm
+;
+; *** Listing 10-2 ***
+;
+; Loads each byte in a 1000-byte array into AL, using
+; LODSB.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (0)
+;
+Skip:
+call ZTimerOn
+mov si,offset ByteArray
+;point to the start of the array
+cld ;make LODSB increment SI
+rept ARRAY_LENGTH
+lodsb ;get this array byte & point to the
+; next byte in the array
+endm
+call ZTimerOff
+```
+
+## Listing 10-3
+
+```nasm
+;
+; *** Listing 10-3 ***
+;
+; Loads a byte into AL 1000 times via MOV, with no
+; INC performed.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (0)
+;
+Skip:
+call ZTimerOn
+mov si,offset ByteArray
+;point to the start of the array
+rept ARRAY_LENGTH
+mov al,[si] ;get this array byte but don't point
+; to the next byte in the array
+endm
+call ZTimerOff
+```
+
+## Listing 10-4
+
+```nasm
+;
+; *** Listing 10-4 ***
+;
+; Searches a word-sized array for the first element
+; greater than 10,000, using non-string instructions.
+;
+jmp Skip
+;
+WordArray dw 1000 dup (0), 10001
+;
+Skip:
+call ZTimerOn
+mov di,offset WordArray-2
+;start 1 word early so the
+; first preincrement points
+; to the first element
+mov ax,10000 ;value we'll compare with
+SearchLoop:
+inc di ;point to the next element
+inc di
+cmp ax,[di] ;compare the next element
+; to 10,000
+jae SearchLoop ;if not greater than 10,000,
+; do the next element
+call ZTimerOff
+```
+
+## Listing 10-5
+
+```nasm
+;
+; *** Listing 10-5 ***
+;
+; Searches a word-sized array for the first element
+; greater than 10,000, using SCASW.
+;
+jmp Skip
+;
+WordArray dw 1000 dup (0), 10001
+;
+Skip:
+call ZTimerOn
+mov di,seg WordArray
+mov es,di ;SCASW always uses ES:SI as a
+; memory pointer
+mov di,offset WordArray
+mov ax,10000 ;value we'll compare with
+cld ;make SCASW add 2 to DI after
+; each execution
+SearchLoop:
+scasw ;compare the next element to 10,000
+jae SearchLoop ;if not greater than 10,000, do
+; the next element
+dec di ;point back to the matching word
+dec di
+call ZTimerOff
+```
+
+## Listing 10-6
+
+```nasm
+;
+; *** Listing 10-6 ***
+;
+; Searches a word-sized array for the first element
+; greater than 10,000, using LODSW & CMP.
+;
+jmp Skip
+;
+WordArray dw 1000 dup (0), 10001
+;
+Skip:
+call ZTimerOn
+mov si,offset WordArray
+;array to search
+mov dx,10000 ;value we'll compare with
+cld ;make LODSW add 2 to SI after each
+; execution
+SearchLoop:
+lodsw ;get the next element
+cmp dx,ax ;compare the element to 10,000
+jae SearchLoop ;if not greater than 10,000, do
+; the next element
+dec di ;point back to the matching word
+dec di
+call ZTimerOff
+```
+
+## Listing 10-7
+
+```nasm
+;
+; *** Listing 10-7 ***
+;
+; Initializes a 1000-word array using a loop and
+; non-string instructions.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+WordArray dw ARRAY_LENGTH dup (?)
+;
+Skip:
+call ZTimerOn
+mov di,offset WordArray
+;point to array to fill
+sub ax,ax ;we'll fill with the value zero
+mov cx,ARRAY_LENGTH ;# of words to fill
+ZeroLoop:
+mov [di],ax ;zero one word
+inc di ;point to the next word
+inc di
+loop ZeroLoop
+call ZTimerOff
+```
+
+## Listing 10-8
+
+```nasm
+;
+; *** Listing 10-8 ***
+;
+; Initializes a 1000-word array using a single
+; repeated STOSW.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+WordArray dw ARRAY_LENGTH dup (?)
+;
+Skip:
+call ZTimerOn
+mov di,seg WordArray
+mov es,di
+mov di,offset WordArray
+;point ES:DI to the array to
+; fill, since STOSW must
+; use that segment:offset combo
+; as a memory pointer
+sub ax,ax ;we'll fill with the value zero
+mov cx,ARRAY_LENGTH ;# of words to fill
+cld ;make STOSW add 2 to DI after each
+; execution
+rep stosw ;fill the array
+call ZTimerOff
+```
+
+## Listing 10-9
+
+```nasm
+;
+; *** Listing 10-9 ***
+;
+; Sets every element of a 1000-byte array to 1 by
+; repeating STOSB 1000 times.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (?)
+;
+Skip:
+call ZTimerOn
+mov di,seg ByteArray
+mov es,di ;point ES:DI to the array to fill
+mov di,offset ByteArray
+mov al,1 ;we'll fill with the value 1
+mov cx,ARRAY_LENGTH ;# of bytes to fill
+cld ;make STOSB increment DI after
+; each execution
+rep stosb ;initialize the array
+call ZTimerOff
+```
+
+## Listing 10-10
+
+```nasm
+;
+; *** Listing 10-10 ***
+;
+; Sets every element of a 1000-byte array to 1 by
+; repeating STOSW 500 times.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+WordArray db ARRAY_LENGTH dup (?)
+;
+Skip:
+call ZTimerOn
+mov di,seg WordArray
+mov es,di ;point ES:DI to the array to fill
+mov di,offset WordArray
+mov ax,(1 shl 8) + 1
+;fill each byte with the value 1
+mov cx,ARRAY_LENGTH/2 ;# of words to fill
+cld ;make STOSW add 2 to DI on each
+; execution
+rep stosw ;fill a word at a time
+call ZTimerOff
+```
+
+## Listing 10-11
+
+```nasm
+;
+; *** Listing 10-11 ***
+;
+; Clears a 1000-byte block of memory via BlockClear,
+; which handles blocks between 0 and 64K-1 bytes in
+; length.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (?)
+;
+; Clears a block of memory CX bytes in length. A value
+; of 0 means "clear zero bytes," so the maximum length
+; that can be cleared is 64K-1 bytes and the minimum
+; length is 0 bytes.
+;
+; Input:
+; CX = number of bytes to clear
+; ES:DI = start of block to clear
+;
+; Output:
+; none
+;
+; Registers altered: AL, CX, DI
+;
+; Direction flag cleared
+;
+BlockClear:
+sub al,al ;fill with zero
+cld ;make STOSB move DI up
+rep stosb ;clear the block
+ret
+;
+Skip:
+call ZTimerOn
+mov di,seg ByteArray
+mov es,di ;point ES:DI to the array to clear
+mov di,offset ByteArray
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+call BlockClear ;clear the array
+call ZTimerOff
+```
+
+## Listing 10-12
+
+```nasm
+;
+; *** Listing 10-12 ***
+;
+; Clears a 1000-byte block of memory via BlockClear64,
+; which handles blocks between 1 and 64K bytes in
+; length. BlockClear64 gains the ability to handle
+; 64K blocks by using STOSW rather than STOSB to
+; the greatest possible extent, getting a performance
+; boost in the process.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (?)
+;
+; Clears a block of memory CX bytes in length. A value
+; of 0 means "clear 64K bytes," so the maximum length
+; that can be cleared is 64K bytes and the minimum length
+; is 1 byte.
+;
+; Input:
+; CX = number of bytes to clear
+; ES:DI = start of block to clear
+;
+; Output:
+; none
+;
+; Registers altered: AX, CX, DI
+;
+; Direction flag cleared
+;
+BlockClear64:
+sub ax,ax ;fill with zero a word at a time
+stc ;assume the count is zero-setting
+; the Carry flag will give us 8000h
+; after the RCR
+jcxz DoClear ;the count is zero
+clc ;it's not zero
+DoClear:
+rcr cx,1 ;divide by 2, copying the odd-byte
+; status to the Carry flag and
+; shifting a 1 into bit 15 if and
+; only if the count is zero
+cld ;make STOSW move DI up
+rep stosw ;clear the block
+jnc ClearDone
+;the Carry status is still left over
+; from the RCR. If we had an even #
+; of bytes, we're done
+stosb ;clear the odd byte
+ClearDone:
+ret
+;
+Skip:
+call ZTimerOn
+mov di,seg ByteArray
+mov es,di ;point ES:DI to the array to clear
+mov di,offset ByteArray
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+call BlockClear64 ;clear the array
+call ZTimerOff
+```
+
+## Listing 10-13
+
+```nasm
+;
+; *** Listing 10-13 ***
+;
+; Clears a 1000-byte block of memory via BlockClearW,
+; which handles blocks between 0 and 64K-1 bytes in
+; length. BlockClearW uses STOSW rather than STOSB to
+; the greatest possible extent in order to improve
+; performance.
+;
+jmp Skip
+;
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (?)
+;
+; Clears a block of memory CX bytes in length. A value
+; of 0 means "clear zero bytes," so the maximum length
+; that can be cleared is 64K-1 bytes and the minimum
+; length is 0 bytes.
+;
+; Input:
+; CX = number of bytes to clear
+; ES:DI = start of block to clear
+;
+; Output:
+; none
+;
+; Registers altered: AX, CX, DI
+;
+; Direction flag cleared
+;
+BlockClearW:
+sub ax,ax ;we'll fill with the value 0
+shr cx,1 ;divide by 2, copying the odd-byte
+; status to the Carry flag
+cld ;make STOSW move DI up
+rep stosw ;clear the block
+jnc ClearDone
+;the Carry status is still left over
+; from the SHR. If we had an even #
+; of bytes, we're done
+stosb ;clear the odd byte
+ClearDone:
+ret
+;
+Skip:
+call ZTimerOn
+mov di,seg ByteArray
+mov es,di ;point ES:DI to the array to clear
+mov di,offset ByteArray
+mov cx,ARRAY_LENGTH ;# of bytes to clear
+call BlockClearW ;clear the array
+call ZTimerOff
+```
+
+## Listing 10-14
+
+```nasm
+;
+; *** Listing 10-14 ***
+;
+; Generates the 8-bit checksum of a 1000-byte array
+; using LODS with an ES: override.
+;
+jmp Skip
+;
+FarSeg segment para
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (0)
+FarSeg ends
+Skip:
+call ZTimerOn
+mov si,seg ByteArray
+mov es,si ;point ES:SI to the array to
+; checksum
+mov si,offset ByteArray
+mov cx,ARRAY_LENGTH ;# of bytes to checksum
+sub ah,ah ;zero the checksum counter
+cld ;make LODS move the pointer up
+ChecksumLoop:
+lods byte ptr es:[si]
+;get the next byte to checksum
+add ah,al ;add the byte into the checksum
+loop ChecksumLoop
+call ZTimerOff
+```
+
+## Listing 10-15
+
+```nasm
+;
+; *** Listing 10-15 ***
+;
+; Generates the 8-bit checksum of a 1000-byte array
+; using LODS without a segment override, by setting
+; DS up to point to the far segment for the duration
+; of the loop.
+;
+jmp Skip
+;
+FarSeg segment para
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (0)
+FarSeg ends
+Skip:
+call ZTimerOn
+push ds ;preserve the normal DS setting
+mov si,seg ByteArray
+mov ds,si ;point DS to the far segment for
+; the duration of the loop-we
+; won't need the normal DS setting
+; until the loop is done
+mov si,offset ByteArray
+mov cx,ARRAY_LENGTH
+sub ah,ah ;zero the checksum counter
+cld ;make LODSB move the pointer up
+ChecksumLoop:
+lodsb ;get the next byte to checksum
+add ah,al ;add the byte into the checksum
+loop ChecksumLoop
+pop ds ;retrieve the normal DS setting
+call ZTimerOff
+```
+
+## Listing 10-16
+
+```nasm
+;
+; *** Listing 10-16 ***
+;
+; Reads a single byte stored in a far segment by
+; using a segment override prefix.
+;
+jmp Skip
+;
+FarSeg segment para
+MemVar db 0 ;this variable resides in a
+; far segment
+FarSeg ends
+;
+Skip:
+call ZTimerOn
+rept 100
+mov si,seg MemVar
+mov es,si
+mov si,offset MemVar ;point ES:SI to MemVar
+lods byte ptr es:[si] ;read MemVar
+endm
+call ZTimerOff
+```
+
+## Listing 10-17
+
+```nasm
+;
+; *** Listing 10-17 ***
+;
+; Reads a single byte stored in a far segment by
+; temporarily pointing DS to the far segment.
+;
+jmp Skip
+;
+FarSeg segment para
+MemVar db 0 ;this variable resides in a
+; far segment
+FarSeg ends
+;
+Skip:
+call ZTimerOn
+rept 100
+push ds ;preserve the normal data segment
+mov si,seg MemVar
+mov ds,si
+mov si,offset MemVar ;point DS:SI to MemVar
+lodsb ;read MemVar
+pop ds ;retrieve the normal data segment
+endm
+call ZTimerOff
+```
+
+## Listing 10-18
+
+```nasm
+;
+; *** Listing 10-18 ***
+;
+; Reads a single byte stored in a far segment by
+; using a segment override prefix. Loads ES just
+; once and then leaves ES set to point to the far
+; segment at all times.
+;
+jmp Skip
+;
+FarSeg segment para
+MemVar db 0 ;this variable resides in a
+; far segment
+FarSeg ends
+;
+Skip:
+call ZTimerOn
+mov si,seg MemVar
+mov es,si ;point ES to the far segment for
+; the remainder of the test
+rept 100
+mov si,offset MemVar ;point ES:SI to MemVar
+lods byte ptr es:[si] ;read MemVar
+endm
+call ZTimerOff
+```
+
+## Listing 10-19
+
+```nasm
+;
+; *** Listing 10-19 ***
+;
+; Generates the 8-bit checksum of a 1000-byte array
+; by loading both segment and offset from a far
+; pointer each time through the loop and without
+; using string instructions, as the code generated
+; by a typical high-level language compiler would.
+;
+jmp Skip
+;
+FarSeg segment para
+ARRAY_LENGTH equ 1000
+ByteArray db ARRAY_LENGTH dup (0)
+;this array resides in a
+; far segment
+FarSeg ends
+;
+FarPtr dd ByteArray ;a far pointer to the array
+;
+Skip:
+call ZTimerOn
+mov cx,ARRAY_LENGTH ;# of bytes to checksum
+sub ah,ah ;zero the checksum counter
+ChecksumLoop:
+les bx,[FarPtr] ;load both segment and
+; offset from the far
+; pointer
+inc word ptr [FarPtr]
+;advance the offset portion
+; of the far pointer
+add ah,es:[bx] ;add the next byte to the
+; checksum
+loop ChecksumLoop
+call ZTimerOff
+```
